@@ -10223,20 +10223,16 @@ const RekapNilai = () => {
     const refreshData = async () => {
       try {
         if (!localSchoolData) {
-          const schoolRes = await fetch(`${endpoint}?action=schoolData`);
-          if (schoolRes.ok) {
-            const schoolJson = await schoolRes.json();
-            if (schoolJson.success && schoolJson.data?.length > 0) {
-              setLocalSchoolData(schoolJson.data[0]);
-            }
+          const cachedSekolah = await idbLoad("sekolahData");
+          if (cachedSekolah) {
+            setLocalSchoolData(cachedSekolah);
           }
         }
 
         if (cachedSiswaData.length === 0) {
-          const siswaRes = await fetch(`${endpoint}?sheet=DataSiswa`);
-          if (siswaRes.ok) {
-            const siswaJson = await siswaRes.json();
-            setCachedSiswaData(siswaJson.slice(1));
+          const cachedSiswa = await idbLoad("siswaData");
+          if (cachedSiswa && cachedSiswa.length > 1) {
+            setCachedSiswaData(cachedSiswa.slice(1));
           }
         }
         const sheetName =
