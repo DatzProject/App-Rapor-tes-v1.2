@@ -5388,6 +5388,22 @@ const InputTP = () => {
     return nextTP;
   };
 
+  const getTPCount = (
+    mapel: string,
+    semester: string,
+    kelas: string
+  ): number => {
+    if (!mapel || !semester || !kelas) return 0;
+    return data
+      .slice(1)
+      .filter(
+        (row: any) =>
+          row.Data1 === mapel &&
+          String(row.Data5) === String(semester) &&
+          String(row.Data6) === String(kelas)
+      ).length;
+  };
+
   const handleMapelChange = async (selectedMapel: string) => {
     // Coba ambil semester & kelas dari DataTP dulu
     const actualDataTP = data.slice(1);
@@ -5536,6 +5552,18 @@ const InputTP = () => {
       !newTP.kelas
     ) {
       alert("⚠️ Semua field wajib diisi!");
+      return;
+    }
+
+    // Validasi batas 10 TP
+    const currentCount = getTPCount(newTP.mapel, newTP.semester, newTP.kelas);
+    if (currentCount >= 10) {
+      alert(
+        `⛔ Batas maksimal tercapai!\n\n` +
+          `${newTP.mapel} — Semester ${newTP.semester} — Kelas ${newTP.kelas}\n` +
+          `sudah memiliki ${currentCount} TP.\n\n` +
+          `Maksimal 10 TP per mata pelajaran per semester.`
+      );
       return;
     }
 
@@ -5835,6 +5863,36 @@ const InputTP = () => {
     const matchKelas = filterKelas === "" || String(row.Data6) === filterKelas; // ← TAMBAH
     return matchMapel && matchSemester && matchKelas;
   });
+
+  // Cek limit TP untuk form TAMBAH
+  const newTPCount = getTPCount(newTP.mapel, newTP.semester, newTP.kelas);
+  const isNewTPLimitReached = !!(
+    newTP.mapel &&
+    newTP.semester &&
+    newTP.kelas &&
+    newTPCount >= 10
+  );
+
+  // Cek limit TP untuk form EDIT (exclude row yang sedang diedit)
+  const editTPCountExcludeSelf =
+    editingIndex !== null
+      ? data
+          .slice(1)
+          .filter(
+            (row: any, idx: number) =>
+              idx !== editingIndex &&
+              row.Data1 === editTP.mapel &&
+              String(row.Data5) === String(editTP.semester) &&
+              String(row.Data6) === String(editTP.kelas)
+          ).length
+      : 0;
+  const isEditTPLimitReached = !!(
+    editingIndex !== null &&
+    editTP.mapel &&
+    editTP.semester &&
+    editTP.kelas &&
+    editTPCountExcludeSelf >= 10
+  );
 
   return (
     <div style={{ padding: "10px", margin: "0 auto", maxWidth: "100vw" }}>
@@ -6155,17 +6213,38 @@ const InputTP = () => {
             </div>
           )}
 
+          {isNewTPLimitReached && (
+            <div
+              style={{
+                marginTop: "12px",
+                padding: "12px 16px",
+                backgroundColor: "#fdecea",
+                border: "1px solid #f44336",
+                borderRadius: "6px",
+                color: "#b71c1c",
+                fontSize: "14px",
+              }}
+            >
+              ⛔ <strong>Batas maksimal tercapai!</strong> {newTP.mapel} —
+              Semester {newTP.semester} — Kelas {newTP.kelas} sudah memiliki{" "}
+              <strong>{newTPCount} TP</strong>. Maksimal 10 TP per mata
+              pelajaran per semester.
+            </div>
+          )}
+
           <button
             onClick={handleAddNew}
-            disabled={isSaving}
+            disabled={isSaving || isNewTPLimitReached}
             style={{
               marginTop: "15px",
               padding: "12px 24px",
-              backgroundColor: isSaving ? "#ccc" : "#4CAF50",
+              backgroundColor:
+                isSaving || isNewTPLimitReached ? "#ccc" : "#4CAF50",
               color: "white",
               border: "none",
               borderRadius: "4px",
-              cursor: isSaving ? "not-allowed" : "pointer",
+              cursor:
+                isSaving || isNewTPLimitReached ? "not-allowed" : "pointer",
               fontWeight: "bold",
               fontSize: "16px",
             }}
@@ -6487,48 +6566,73 @@ const InputTP = () => {
             </div>
           )}
 
-          <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
-            <button
-              onClick={handleSaveEdit}
-              disabled={isSaving}
-              style={{
-                padding: "12px 24px",
-                backgroundColor: isSaving ? "#ccc" : "#FF9800",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: isSaving ? "not-allowed" : "pointer",
-                fontWeight: "bold",
-                fontSize: "16px",
-              }}
-            >
-              {isSaving ? "Menyimpan..." : "💾 Simpan Perubahan"}
-            </button>
-            <button
-              onClick={() => {
-                setEditingIndex(null);
-                setEditTP({
-                  mapel: "",
-                  tp: "",
-                  rincian: "",
-                  bab: "",
-                  semester: "",
-                  kelas: "",
-                });
-              }}
-              style={{
-                padding: "12px 24px",
-                backgroundColor: "#9E9E9E",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "16px",
-              }}
-            >
-              ❌ Batal
-            </button>
+          <div style={{ marginTop: "15px" }}>
+            {isEditTPLimitReached && (
+              <div
+                style={{
+                  marginBottom: "12px",
+                  padding: "12px 16px",
+                  backgroundColor: "#fdecea",
+                  border: "1px solid #f44336",
+                  borderRadius: "6px",
+                  color: "#b71c1c",
+                  fontSize: "14px",
+                }}
+              >
+                ⛔ <strong>Batas maksimal tercapai!</strong> {editTP.mapel} —
+                Semester {editTP.semester} — Kelas {editTP.kelas} sudah memiliki{" "}
+                <strong>{editTPCountExcludeSelf} TP</strong> lainnya. Maksimal
+                10 TP per mata pelajaran per semester.
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isSaving || isEditTPLimitReached}
+                style={{
+                  padding: "12px 24px",
+                  backgroundColor:
+                    isSaving || isEditTPLimitReached ? "#ccc" : "#FF9800",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor:
+                    isSaving || isEditTPLimitReached
+                      ? "not-allowed"
+                      : "pointer",
+                  fontWeight: "bold",
+                  fontSize: "16px",
+                }}
+              >
+                {isSaving ? "Menyimpan..." : "💾 Simpan Perubahan"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingIndex(null);
+                  setEditTP({
+                    mapel: "",
+                    tp: "",
+                    rincian: "",
+                    bab: "",
+                    semester: "",
+                    kelas: "",
+                  });
+                }}
+                style={{
+                  padding: "12px 24px",
+                  backgroundColor: "#9E9E9E",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "16px",
+                }}
+              >
+                ❌ Batal
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -6682,28 +6786,71 @@ const InputTP = () => {
           style={{
             borderCollapse: "separate",
             borderSpacing: 0,
-            minWidth: "100%",
-            width: "max-content",
+            width: "100%",
           }}
         >
           <thead style={{ position: "sticky", top: 0, zIndex: 100 }}>
             <tr style={{ backgroundColor: "#f4f4f4" }}>
-              {displayHeaders.map((header, index) => (
-                <th
-                  key={index}
-                  style={{
-                    padding: "8px",
-                    textAlign: "center",
-                    borderBottom: "2px solid #ddd",
-                    fontWeight: "bold",
-                    minWidth: index === 2 ? "300px" : "120px",
-                    backgroundColor: "#f4f4f4",
-                    fontSize: "12px",
-                  }}
-                >
-                  {header}
-                </th>
-              ))}
+              <th
+                style={{
+                  padding: "8px",
+                  textAlign: "center",
+                  borderBottom: "2px solid #ddd",
+                  fontWeight: "bold",
+                  width: "40px",
+                  minWidth: "40px",
+                  backgroundColor: "#f4f4f4",
+                  fontSize: "12px",
+                }}
+              >
+                No.
+              </th>
+              {/* Bab (index 3) */}
+              <th
+                style={{
+                  padding: "8px",
+                  textAlign: "center",
+                  borderBottom: "2px solid #ddd",
+                  fontWeight: "bold",
+                  width: "60px",
+                  minWidth: "60px",
+                  backgroundColor: "#f4f4f4",
+                  fontSize: "12px",
+                }}
+              >
+                {displayHeaders[3]}
+              </th>
+              {/* TP (index 1) */}
+              <th
+                style={{
+                  padding: "8px",
+                  textAlign: "center",
+                  borderBottom: "2px solid #ddd",
+                  fontWeight: "bold",
+                  width: "80px",
+                  minWidth: "80px",
+                  backgroundColor: "#f4f4f4",
+                  fontSize: "12px",
+                }}
+              >
+                {displayHeaders[1]}
+              </th>
+              {/* Rincian TP (index 2) */}
+              <th
+                style={{
+                  padding: "8px",
+                  textAlign: "center",
+                  borderBottom: "2px solid #ddd",
+                  fontWeight: "bold",
+                  width: "400px",
+                  minWidth: "180px",
+                  backgroundColor: "#f4f4f4",
+                  fontSize: "12px",
+                }}
+              >
+                {displayHeaders[2]}
+              </th>
+
               <th
                 style={{
                   padding: "8px",
@@ -6736,33 +6883,104 @@ const InputTP = () => {
                       filteredIndex % 2 === 0 ? "#fff" : "#f9f9f9",
                   }}
                 >
-                  {headers.map((header, colIndex) => (
-                    <td
-                      key={colIndex}
-                      style={{ padding: "8px", borderBottom: "1px solid #eee" }}
-                    >
-                      <input
-                        type="text"
-                        value={row[header] || ""}
-                        readOnly
-                        style={{
-                          width: "100%",
-                          padding: "6px",
-                          border: "1px solid #eee",
-                          borderRadius: "3px",
-                          fontSize: "12px",
-                          backgroundColor: "#f9f9f9",
-                          cursor: "default",
-                          color: "#333",
-                        }}
-                      />
-                    </td>
-                  ))}
                   <td
                     style={{
                       padding: "8px",
                       borderBottom: "1px solid #eee",
                       textAlign: "center",
+                      fontSize: "12px",
+                      color: "#666",
+                      verticalAlign: "middle",
+                      width: "40px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {filteredIndex + 1}
+                  </td>
+                  {/* Bab (Data4, index 3) */}
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #eee",
+                      verticalAlign: "middle",
+                      textAlign: "center",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row["Data4"] || ""}
+                      readOnly
+                      style={{
+                        width: "100%",
+                        padding: "6px",
+                        border: "1px solid #eee",
+                        borderRadius: "3px",
+                        fontSize: "12px",
+                        backgroundColor: "#f9f9f9",
+                        cursor: "default",
+                        color: "#333",
+                        textAlign: "center",
+                      }}
+                    />
+                  </td>
+                  {/* TP (Data2, index 1) */}
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #eee",
+                      verticalAlign: "middle",
+                      textAlign: "center",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={row["Data2"] || ""}
+                      readOnly
+                      style={{
+                        width: "100%",
+                        padding: "6px",
+                        border: "1px solid #eee",
+                        borderRadius: "3px",
+                        fontSize: "12px",
+                        backgroundColor: "#f9f9f9",
+                        cursor: "default",
+                        color: "#333",
+                        textAlign: "center",
+                      }}
+                    />
+                  </td>
+                  {/* Rincian TP (Data3, index 2) */}
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #eee",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "100%",
+                        padding: "6px",
+                        border: "1px solid #eee",
+                        borderRadius: "3px",
+                        fontSize: "12px",
+                        backgroundColor: "#f9f9f9",
+                        color: "#333",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        lineHeight: "1.5",
+                        minWidth: "180px",
+                      }}
+                    >
+                      {row["Data3"] || ""}
+                    </div>
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #eee",
+                      textAlign: "center",
+                      verticalAlign: "middle",
                     }}
                   >
                     <div
