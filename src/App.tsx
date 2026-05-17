@@ -2645,674 +2645,667 @@ const InputNilai = () => {
             ))}
           </tbody>
         </table>
-
-        {/* Popup TP Details */}
-        {showTPPopup && (
+      </div>
+      {/* Popup TP Details */}
+      {showTPPopup && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowTPPopup(false)}
+        >
           <div
             style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 1000,
+              backgroundColor: "white",
+              borderRadius: "8px",
+              padding: "20px",
+              maxWidth: "600px",
+              width: "90%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
             }}
-            onClick={() => setShowTPPopup(false)}
+            onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                padding: "20px",
-                maxWidth: "600px",
-                width: "90%",
-                maxHeight: "80vh",
-                overflowY: "auto",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "15px",
+                borderBottom: "2px solid #4CAF50",
+                paddingBottom: "10px",
               }}
-              onClick={(e) => e.stopPropagation()}
             >
-              <div
+              <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
+                Rincian TP: {selectedTP}
+              </h2>
+              <button
+                onClick={() => setShowTPPopup(false)}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "15px",
-                  borderBottom: "2px solid #4CAF50",
-                  paddingBottom: "10px",
+                  backgroundColor: "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "bold",
                 }}
               >
-                <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
-                  Rincian TP: {selectedTP}
-                </h2>
-                <button
-                  onClick={() => setShowTPPopup(false)}
-                  style={{
-                    backgroundColor: "#f44336",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "8px 16px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Tutup
-                </button>
-              </div>
-
-              {loadingTP ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "20px",
-                    color: "#666",
-                  }}
-                >
-                  Loading...
-                </div>
-              ) : tpDetails ? (
-                <div>
-                  <div style={{ marginBottom: "15px" }}>
-                    <strong style={{ color: "#4CAF50" }}>Mapel:</strong>{" "}
-                    <span style={{ color: "#333" }}>
-                      {tpDetails.mapel || "N/A"}
-                    </span>
-                  </div>
-                  <div style={{ marginBottom: "15px" }}>
-                    <strong style={{ color: "#4CAF50" }}>TP:</strong>{" "}
-                    <span style={{ color: "#333" }}>
-                      {tpDetails.tp || "N/A"}
-                    </span>
-                  </div>
-                  <div style={{ marginBottom: "15px" }}>
-                    <strong style={{ color: "#4CAF50" }}>BAB:</strong>{" "}
-                    <span style={{ color: "#333" }}>
-                      {tpDetails.bab || "N/A"}
-                    </span>
-                  </div>
-                  <div style={{ marginBottom: "15px" }}>
-                    <strong style={{ color: "#4CAF50" }}>Semester:</strong>{" "}
-                    <span style={{ color: "#333" }}>
-                      {tpDetails.semester || "N/A"}
-                    </span>
-                  </div>
-                  <div style={{ marginBottom: "15px" }}>
-                    <strong style={{ color: "#4CAF50" }}>Kelas:</strong>{" "}
-                    <span style={{ color: "#333" }}>
-                      {tpDetails.kelas || "N/A"}
-                    </span>
-                  </div>
-                  <div>
-                    <strong style={{ color: "#4CAF50" }}>Rincian TP:</strong>
-                    <p
-                      style={{
-                        marginTop: "10px",
-                        lineHeight: "1.6",
-                        color: "#333",
-                        backgroundColor: "#f9f9f9",
-                        padding: "15px",
-                        borderRadius: "4px",
-                        border: "1px solid #e0e0e0",
-                      }}
-                    >
-                      {tpDetails.rincian || "Tidak ada rincian"}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "20px",
-                    color: "#f44336",
-                  }}
-                >
-                  Data tidak ditemukan
-                </div>
-              )}
+                Tutup
+              </button>
             </div>
-          </div>
-        )}
 
-        {/* Popup Deskripsi */}
-        {showDescPopup && selectedStudentDesc && (
+            {loadingTP ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "20px",
+                  color: "#666",
+                }}
+              >
+                Loading...
+              </div>
+            ) : tpDetails ? (
+              <div>
+                <div style={{ marginBottom: "15px" }}>
+                  <strong style={{ color: "#4CAF50" }}>Mapel:</strong>{" "}
+                  <span style={{ color: "#333" }}>
+                    {tpDetails.mapel || "N/A"}
+                  </span>
+                </div>
+                <div style={{ marginBottom: "15px" }}>
+                  <strong style={{ color: "#4CAF50" }}>TP:</strong>{" "}
+                  <span style={{ color: "#333" }}>{tpDetails.tp || "N/A"}</span>
+                </div>
+                <div style={{ marginBottom: "15px" }}>
+                  <strong style={{ color: "#4CAF50" }}>BAB:</strong>{" "}
+                  <span style={{ color: "#333" }}>
+                    {tpDetails.bab || "N/A"}
+                  </span>
+                </div>
+                <div style={{ marginBottom: "15px" }}>
+                  <strong style={{ color: "#4CAF50" }}>Semester:</strong>{" "}
+                  <span style={{ color: "#333" }}>
+                    {tpDetails.semester || "N/A"}
+                  </span>
+                </div>
+                <div style={{ marginBottom: "15px" }}>
+                  <strong style={{ color: "#4CAF50" }}>Kelas:</strong>{" "}
+                  <span style={{ color: "#333" }}>
+                    {tpDetails.kelas || "N/A"}
+                  </span>
+                </div>
+                <div>
+                  <strong style={{ color: "#4CAF50" }}>Rincian TP:</strong>
+                  <p
+                    style={{
+                      marginTop: "10px",
+                      lineHeight: "1.6",
+                      color: "#333",
+                      backgroundColor: "#f9f9f9",
+                      padding: "15px",
+                      borderRadius: "4px",
+                      border: "1px solid #e0e0e0",
+                    }}
+                  >
+                    {tpDetails.rincian || "Tidak ada rincian"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "20px",
+                  color: "#f44336",
+                }}
+              >
+                Data tidak ditemukan
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Popup Deskripsi */}
+      {showDescPopup && selectedStudentDesc && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowDescPopup(false)}
+        >
           <div
             style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 1000,
+              backgroundColor: "white",
+              borderRadius: "8px",
+              padding: "20px",
+              maxWidth: "700px",
+              width: "90%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
             }}
-            onClick={() => setShowDescPopup(false)}
+            onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                padding: "20px",
-                maxWidth: "700px",
-                width: "90%",
-                maxHeight: "80vh",
-                overflowY: "auto",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "15px",
+                borderBottom: "2px solid #2196F3",
+                paddingBottom: "10px",
               }}
-              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
+                Deskripsi: {selectedStudentDesc.nama}
+              </h2>
+              <button
+                onClick={() => setShowDescPopup(false)}
+                style={{
+                  backgroundColor: "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "bold",
+                }}
+              >
+                Tutup
+              </button>
+            </div>
+
+            {/* TP & Nilai */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "15px",
+                marginBottom: "20px",
+              }}
             >
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "15px",
-                  borderBottom: "2px solid #2196F3",
-                  paddingBottom: "10px",
+                  backgroundColor: "#ffebee",
+                  padding: "15px",
+                  borderRadius: "8px",
+                  border: "2px solid #f44336",
                 }}
               >
-                <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
-                  Deskripsi: {selectedStudentDesc.nama}
-                </h2>
-                <button
-                  onClick={() => setShowDescPopup(false)}
-                  style={{
-                    backgroundColor: "#f44336",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "8px 16px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Tutup
-                </button>
-              </div>
-
-              {/* TP & Nilai */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "15px",
-                  marginBottom: "20px",
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: "#ffebee",
-                    padding: "15px",
-                    borderRadius: "8px",
-                    border: "2px solid #f44336",
-                  }}
-                >
-                  <h3
-                    style={{
-                      color: "#f44336",
-                      fontSize: "14px",
-                      marginBottom: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <span style={{ fontSize: "20px" }}>📉</span> TP Terendah
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: "24px",
-                      fontWeight: "bold",
-                      color: "#c62828",
-                      margin: 0,
-                      textAlign: "center",
-                    }}
-                  >
-                    {selectedStudentDesc.tpMin}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: "#e8f5e9",
-                    padding: "15px",
-                    borderRadius: "8px",
-                    border: "2px solid #4CAF50",
-                  }}
-                >
-                  <h3
-                    style={{
-                      color: "#4CAF50",
-                      fontSize: "14px",
-                      marginBottom: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <span style={{ fontSize: "20px" }}>📈</span> TP Tertinggi
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: "24px",
-                      fontWeight: "bold",
-                      color: "#2e7d32",
-                      margin: 0,
-                      textAlign: "center",
-                    }}
-                  >
-                    {selectedStudentDesc.tpMax}
-                  </p>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "15px",
-                  marginBottom: "20px",
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: "#fff3e0",
-                    padding: "15px",
-                    borderRadius: "8px",
-                    border: "2px solid #ff9800",
-                  }}
-                >
-                  <h3
-                    style={{
-                      color: "#ff9800",
-                      fontSize: "14px",
-                      marginBottom: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <span style={{ fontSize: "20px" }}>📊</span> Nilai Terendah
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: "24px",
-                      fontWeight: "bold",
-                      color: "#e65100",
-                      margin: 0,
-                      textAlign: "center",
-                    }}
-                  >
-                    {selectedStudentDesc.nilaiMin}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: "#e3f2fd",
-                    padding: "15px",
-                    borderRadius: "8px",
-                    border: "2px solid #2196F3",
-                  }}
-                >
-                  <h3
-                    style={{
-                      color: "#2196F3",
-                      fontSize: "14px",
-                      marginBottom: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <span style={{ fontSize: "20px" }}>🎯</span> Nilai Tertinggi
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: "24px",
-                      fontWeight: "bold",
-                      color: "#1565c0",
-                      margin: 0,
-                      textAlign: "center",
-                    }}
-                  >
-                    {selectedStudentDesc.nilaiMax}
-                  </p>
-                </div>
-              </div>
-
-              {/* Deskripsi */}
-              <div style={{ marginBottom: "20px" }}>
                 <h3
                   style={{
-                    color: "#ff9800",
-                    fontSize: "16px",
-                    marginBottom: "10px",
+                    color: "#f44336",
+                    fontSize: "14px",
+                    marginBottom: "8px",
                     display: "flex",
                     alignItems: "center",
                     gap: "5px",
                   }}
                 >
-                  <span style={{ fontSize: "18px" }}>⚠️</span> Deskripsi Minimal
+                  <span style={{ fontSize: "20px" }}>📉</span> TP Terendah
                 </h3>
                 <p
                   style={{
-                    lineHeight: "1.6",
-                    color: "#333",
-                    backgroundColor: "#fff3cd",
-                    padding: "15px",
-                    borderRadius: "4px",
-                    border: "1px solid #ffc107",
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    color: "#c62828",
                     margin: 0,
+                    textAlign: "center",
                   }}
                 >
-                  {selectedStudentDesc.descMin}
+                  {selectedStudentDesc.tpMin}
                 </p>
               </div>
 
-              <div>
+              <div
+                style={{
+                  backgroundColor: "#e8f5e9",
+                  padding: "15px",
+                  borderRadius: "8px",
+                  border: "2px solid #4CAF50",
+                }}
+              >
                 <h3
                   style={{
                     color: "#4CAF50",
-                    fontSize: "16px",
-                    marginBottom: "10px",
+                    fontSize: "14px",
+                    marginBottom: "8px",
                     display: "flex",
                     alignItems: "center",
                     gap: "5px",
                   }}
                 >
-                  <span style={{ fontSize: "18px" }}>✅</span> Deskripsi
-                  Maksimal
+                  <span style={{ fontSize: "20px" }}>📈</span> TP Tertinggi
                 </h3>
                 <p
                   style={{
-                    lineHeight: "1.6",
-                    color: "#333",
-                    backgroundColor: "#d4edda",
-                    padding: "15px",
-                    borderRadius: "4px",
-                    border: "1px solid #28a745",
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    color: "#2e7d32",
                     margin: 0,
+                    textAlign: "center",
                   }}
                 >
-                  {selectedStudentDesc.descMax}
+                  {selectedStudentDesc.tpMax}
                 </p>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Modal Pilih Kolom Import */}
-        {importModalOpen && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0,0,0,0.5)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 1000,
-            }}
-            onClick={() => setImportModalOpen(false)}
-          >
             <div
               style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                padding: "24px",
-                maxWidth: "480px",
-                width: "90%",
-                maxHeight: "80vh",
-                overflowY: "auto",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "15px",
+                marginBottom: "20px",
               }}
-              onClick={(e) => e.stopPropagation()}
             >
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                  borderBottom: "2px solid #9C27B0",
-                  paddingBottom: "10px",
+                  backgroundColor: "#fff3e0",
+                  padding: "15px",
+                  borderRadius: "8px",
+                  border: "2px solid #ff9800",
                 }}
               >
-                <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
-                  📥 Import Nilai dari Excel
-                </h2>
-                <button
-                  onClick={() => setImportModalOpen(false)}
+                <h3
                   style={{
-                    backgroundColor: "#f44336",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "8px 16px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
+                    color: "#ff9800",
+                    fontSize: "14px",
+                    marginBottom: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
                   }}
                 >
-                  Tutup
-                </button>
+                  <span style={{ fontSize: "20px" }}>📊</span> Nilai Terendah
+                </h3>
+                <p
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    color: "#e65100",
+                    margin: 0,
+                    textAlign: "center",
+                  }}
+                >
+                  {selectedStudentDesc.nilaiMin}
+                </p>
               </div>
+
+              <div
+                style={{
+                  backgroundColor: "#e3f2fd",
+                  padding: "15px",
+                  borderRadius: "8px",
+                  border: "2px solid #2196F3",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#2196F3",
+                    fontSize: "14px",
+                    marginBottom: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                  }}
+                >
+                  <span style={{ fontSize: "20px" }}>🎯</span> Nilai Tertinggi
+                </h3>
+                <p
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    color: "#1565c0",
+                    margin: 0,
+                    textAlign: "center",
+                  }}
+                >
+                  {selectedStudentDesc.nilaiMax}
+                </p>
+              </div>
+            </div>
+
+            {/* Deskripsi */}
+            <div style={{ marginBottom: "20px" }}>
+              <h3
+                style={{
+                  color: "#ff9800",
+                  fontSize: "16px",
+                  marginBottom: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                }}
+              >
+                <span style={{ fontSize: "18px" }}>⚠️</span> Deskripsi Minimal
+              </h3>
               <p
                 style={{
-                  fontSize: "13px",
-                  color: "#666",
-                  marginBottom: "16px",
                   lineHeight: "1.6",
+                  color: "#333",
+                  backgroundColor: "#fff3cd",
+                  padding: "15px",
+                  borderRadius: "4px",
+                  border: "1px solid #ffc107",
+                  margin: 0,
                 }}
               >
-                Pilih kolom tujuan, lalu upload file Excel.
-                <br />
-                File harus memiliki kolom <strong>"Nama"</strong> dan{" "}
-                <strong>"Nilai"</strong>.<br />
-                Nama siswa akan dicocokkan otomatis (tidak case-sensitive).
+                {selectedStudentDesc.descMin}
               </p>
-              <div
+            </div>
+
+            <div>
+              <h3
                 style={{
+                  color: "#4CAF50",
+                  fontSize: "16px",
+                  marginBottom: "10px",
                   display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
+                  alignItems: "center",
+                  gap: "5px",
                 }}
               >
-                {IMPORTABLE_COLUMNS.filter((col) => {
-                  const idx = headers.indexOf(col);
-                  return (
-                    idx !== -1 &&
-                    displayHeaders[idx] &&
-                    displayHeaders[idx] !== "-"
-                  );
-                }).map((col) => {
-                  const idx = headers.indexOf(col);
-                  const label = displayHeaders[idx] || col;
-                  const inputId = `import-file-${col}`;
-                  return (
-                    <label
-                      key={col}
-                      htmlFor={inputId}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "10px 16px",
-                        backgroundColor: "#f3e5f5",
-                        borderRadius: "6px",
-                        border: "1px solid #ce93d8",
-                        cursor: "pointer",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#e1bee7")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#f3e5f5")
-                      }
-                    >
-                      <span
-                        style={{
-                          fontWeight: "bold",
-                          color: "#6a1b9a",
-                          fontSize: "14px",
-                        }}
-                      >
-                        {label}
-                      </span>
-                      <span style={{ fontSize: "12px", color: "#888" }}>
-                        Klik untuk upload →
-                      </span>
-                      <input
-                        id={inputId}
-                        type="file"
-                        accept=".xlsx,.xls"
-                        style={{ display: "none" }}
-                        onChange={(e) => {
-                          setImportModalOpen(false);
-                          handleImportExcel(e, col);
-                        }}
-                      />
-                    </label>
-                  );
-                })}
-              </div>
+                <span style={{ fontSize: "18px" }}>✅</span> Deskripsi Maksimal
+              </h3>
+              <p
+                style={{
+                  lineHeight: "1.6",
+                  color: "#333",
+                  backgroundColor: "#d4edda",
+                  padding: "15px",
+                  borderRadius: "4px",
+                  border: "1px solid #28a745",
+                  margin: 0,
+                }}
+              >
+                {selectedStudentDesc.descMax}
+              </p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Modal Hasil Import */}
-        {importResult && (
+      {/* Modal Pilih Kolom Import */}
+      {importModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setImportModalOpen(false)}
+        >
           <div
             style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0,0,0,0.5)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 1000,
+              backgroundColor: "white",
+              borderRadius: "8px",
+              padding: "24px",
+              maxWidth: "480px",
+              width: "90%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
             }}
-            onClick={() => setImportResult(null)}
+            onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                padding: "24px",
-                maxWidth: "480px",
-                width: "90%",
-                maxHeight: "80vh",
-                overflowY: "auto",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+                borderBottom: "2px solid #9C27B0",
+                paddingBottom: "10px",
               }}
-              onClick={(e) => e.stopPropagation()}
             >
-              <div
+              <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
+                📥 Import Nilai dari Excel
+              </h2>
+              <button
+                onClick={() => setImportModalOpen(false)}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "16px",
-                  borderBottom: "2px solid #4CAF50",
-                  paddingBottom: "10px",
+                  backgroundColor: "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
                 }}
               >
-                <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
-                  ✅ Hasil Import
-                </h2>
-                <button
-                  onClick={() => setImportResult(null)}
+                Tutup
+              </button>
+            </div>
+            <p
+              style={{
+                fontSize: "13px",
+                color: "#666",
+                marginBottom: "16px",
+                lineHeight: "1.6",
+              }}
+            >
+              Pilih kolom tujuan, lalu upload file Excel.
+              <br />
+              File harus memiliki kolom <strong>"Nama"</strong> dan{" "}
+              <strong>"Nilai"</strong>.<br />
+              Nama siswa akan dicocokkan otomatis (tidak case-sensitive).
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              {IMPORTABLE_COLUMNS.filter((col) => {
+                const idx = headers.indexOf(col);
+                return (
+                  idx !== -1 &&
+                  displayHeaders[idx] &&
+                  displayHeaders[idx] !== "-"
+                );
+              }).map((col) => {
+                const idx = headers.indexOf(col);
+                const label = displayHeaders[idx] || col;
+                const inputId = `import-file-${col}`;
+                return (
+                  <label
+                    key={col}
+                    htmlFor={inputId}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 16px",
+                      backgroundColor: "#f3e5f5",
+                      borderRadius: "6px",
+                      border: "1px solid #ce93d8",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#e1bee7")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#f3e5f5")
+                    }
+                  >
+                    <span
+                      style={{
+                        fontWeight: "bold",
+                        color: "#6a1b9a",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {label}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#888" }}>
+                      Klik untuk upload →
+                    </span>
+                    <input
+                      id={inputId}
+                      type="file"
+                      accept=".xlsx,.xls"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        setImportModalOpen(false);
+                        handleImportExcel(e, col);
+                      }}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Hasil Import */}
+      {importResult && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setImportResult(null)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "8px",
+              padding: "24px",
+              maxWidth: "480px",
+              width: "90%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+                borderBottom: "2px solid #4CAF50",
+                paddingBottom: "10px",
+              }}
+            >
+              <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
+                ✅ Hasil Import
+              </h2>
+              <button
+                onClick={() => setImportResult(null)}
+                style={{
+                  backgroundColor: "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Tutup
+              </button>
+            </div>
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "12px",
+                backgroundColor: "#e8f5e9",
+                borderRadius: "6px",
+                border: "1px solid #4CAF50",
+              }}
+            >
+              <p style={{ margin: 0, fontSize: "15px", color: "#2e7d32" }}>
+                ✅ <strong>{importResult.matched} siswa</strong> berhasil
+                diimport ke kolom{" "}
+                <strong>
+                  {displayHeaders[headers.indexOf(importResult.targetColumn)] ||
+                    importResult.targetColumn}
+                </strong>
+              </p>
+              <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#555" }}>
+                Klik "Save All Changes" untuk menyimpan ke server.
+              </p>
+            </div>
+            {importResult.notFound.length > 0 && (
+              <div
+                style={{
+                  padding: "12px",
+                  backgroundColor: "#fff3e0",
+                  borderRadius: "6px",
+                  border: "1px solid #ff9800",
+                }}
+              >
+                <p
                   style={{
-                    backgroundColor: "#f44336",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "8px 16px",
-                    cursor: "pointer",
+                    margin: "0 0 8px",
+                    fontSize: "14px",
+                    color: "#e65100",
                     fontWeight: "bold",
                   }}
                 >
-                  Tutup
-                </button>
-              </div>
-              <div
-                style={{
-                  marginBottom: "16px",
-                  padding: "12px",
-                  backgroundColor: "#e8f5e9",
-                  borderRadius: "6px",
-                  border: "1px solid #4CAF50",
-                }}
-              >
-                <p style={{ margin: 0, fontSize: "15px", color: "#2e7d32" }}>
-                  ✅ <strong>{importResult.matched} siswa</strong> berhasil
-                  diimport ke kolom{" "}
-                  <strong>
-                    {displayHeaders[
-                      headers.indexOf(importResult.targetColumn)
-                    ] || importResult.targetColumn}
-                  </strong>
+                  ⚠️ {importResult.notFound.length} siswa tidak ditemukan di
+                  Excel:
                 </p>
-                <p
-                  style={{ margin: "6px 0 0", fontSize: "12px", color: "#555" }}
-                >
-                  Klik "Save All Changes" untuk menyimpan ke server.
-                </p>
-              </div>
-              {importResult.notFound.length > 0 && (
-                <div
+                <ul
                   style={{
-                    padding: "12px",
-                    backgroundColor: "#fff3e0",
-                    borderRadius: "6px",
-                    border: "1px solid #ff9800",
+                    margin: 0,
+                    paddingLeft: "20px",
+                    fontSize: "13px",
+                    color: "#555",
                   }}
                 >
-                  <p
-                    style={{
-                      margin: "0 0 8px",
-                      fontSize: "14px",
-                      color: "#e65100",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    ⚠️ {importResult.notFound.length} siswa tidak ditemukan di
-                    Excel:
-                  </p>
-                  <ul
-                    style={{
-                      margin: 0,
-                      paddingLeft: "20px",
-                      fontSize: "13px",
-                      color: "#555",
-                    }}
-                  >
-                    {importResult.notFound.map((nama, i) => (
-                      <li key={i}>{nama}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+                  {importResult.notFound.map((nama, i) => (
+                    <li key={i}>{nama}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Floating Arrow Button */}
       {showFloatingButton && (
@@ -4423,6 +4416,28 @@ const DataKehadiran = () => {
     colIndex: number;
   } | null>(null);
   const [isProcessingClick, setIsProcessingClick] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    matched: number;
+    notFound: string[];
+  } | null>(null);
+  const [importPreview, setImportPreview] = useState<{
+    matched: {
+      nama: string;
+      hadir: string;
+      alpha: string;
+      izin: string;
+      sakit: string;
+    }[];
+    notFound: string[];
+    pendingData: {
+      rowIndex: number;
+      hadir: string;
+      alpha: string;
+      izin: string;
+      sakit: string;
+    }[];
+  } | null>(null);
   const [showStudentPopup, setShowStudentPopup] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{
     nama: string;
@@ -4560,7 +4575,6 @@ const DataKehadiran = () => {
       "Data5",
       "Data6",
       "Data7",
-      "Data8",
     ];
     const updates: Array<{ rowIndex: number; values: string[] }> = [];
 
@@ -4594,6 +4608,9 @@ const DataKehadiran = () => {
 
       alert("Semua perubahan berhasil disimpan!");
       setChangedRows(new Set());
+      setIsEditMode(false);
+      setShowFloatingButton(false);
+      setActiveInput(null);
       setIsSaving(false);
 
       // Reload data langsung dari server
@@ -4640,6 +4657,194 @@ const DataKehadiran = () => {
     }, 300);
   };
 
+  const handleImportKehadiran = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, {
+          defval: "",
+        });
+
+        if (jsonData.length === 0) {
+          alert("⚠️ File Excel kosong.");
+          return;
+        }
+
+        const keys = Object.keys(jsonData[0]);
+        const namaKey = keys.find((k) => k.toLowerCase() === "nama");
+        const hadirKey = keys.find((k) => k.toLowerCase() === "hadir");
+        const alphaKey = keys.find(
+          (k) => k.toLowerCase() === "alpha" || k.toLowerCase() === "alpa"
+        );
+        const izinKey = keys.find((k) => k.toLowerCase() === "izin");
+        const sakitKey = keys.find((k) => k.toLowerCase() === "sakit");
+
+        if (!namaKey) {
+          alert(
+            `⚠️ Kolom "Nama" tidak ditemukan!\n\nKolom tersedia: ${keys.join(
+              ", "
+            )}`
+          );
+          return;
+        }
+
+        // Buat map dari Excel
+        const excelMap: {
+          [nama: string]: {
+            hadir: string;
+            alpha: string;
+            izin: string;
+            sakit: string;
+          };
+        } = {};
+        jsonData.forEach((row) => {
+          const nama = String(row[namaKey] || "").trim();
+          if (
+            nama &&
+            nama.toLowerCase() !== "total" &&
+            nama.toLowerCase() !== "persen"
+          ) {
+            excelMap[nama] = {
+              hadir: hadirKey ? String(row[hadirKey] || "") : "",
+              alpha: alphaKey ? String(row[alphaKey] || "") : "",
+              izin: izinKey ? String(row[izinKey] || "") : "",
+              sakit: sakitKey ? String(row[sakitKey] || "") : "",
+            };
+          }
+        });
+
+        // Buat preview data
+        const matchedPreview: {
+          nama: string;
+          hadir: string;
+          alpha: string;
+          izin: string;
+          sakit: string;
+        }[] = [];
+        const notFound: string[] = [];
+        const pendingData: {
+          rowIndex: number;
+          hadir: string;
+          alpha: string;
+          izin: string;
+          sakit: string;
+        }[] = [];
+
+        actualData.forEach((row, rowIndex) => {
+          const namaSiswa = String(row.Data1 || "").trim();
+          if (!namaSiswa) return;
+
+          const matchedNilai = excelMap[namaSiswa];
+          if (matchedNilai !== undefined) {
+            matchedPreview.push({ nama: namaSiswa, ...matchedNilai });
+            pendingData.push({ rowIndex, ...matchedNilai });
+          } else {
+            notFound.push(namaSiswa);
+          }
+        });
+
+        // Tampilkan preview, belum apply ke data
+        setImportPreview({ matched: matchedPreview, notFound, pendingData });
+      } catch (err) {
+        alert(
+          "❌ Gagal membaca file: " +
+            (err instanceof Error ? err.message : "Unknown error")
+        );
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview) return;
+
+    setIsSaving(true);
+    setImportPreview(null);
+
+    const headers = [
+      "Data1",
+      "Data2",
+      "Data3",
+      "Data4",
+      "Data5",
+      "Data6",
+      "Data7",
+    ];
+
+    // Terapkan perubahan ke data lokal dan siapkan updates untuk server
+    const updatedData = [...data];
+    const updates: Array<{ rowIndex: number; values: string[] }> = [];
+
+    importPreview.pendingData.forEach(
+      ({ rowIndex, hadir, alpha, izin, sakit }) => {
+        updatedData[rowIndex + 1] = {
+          ...updatedData[rowIndex + 1],
+          Data4: hadir,
+          Data5: alpha,
+          Data6: izin,
+          Data7: sakit,
+        };
+
+        const rowData = updatedData[rowIndex + 1];
+        const values = headers.map((header) => rowData[header] || "");
+
+        updates.push({
+          rowIndex: rowIndex + 3, // +3 karena: +1 header row, +1 label row, +1 untuk 1-based index
+          values,
+        });
+      }
+    );
+
+    setData(updatedData);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "update_kehadiran_bulk",
+          sheetName: `DataKehadiran${selectedSemester}`,
+          updates,
+        }),
+      });
+
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+
+      setImportResult({
+        matched: importPreview.matched.length,
+        notFound: importPreview.notFound,
+      });
+
+      setChangedRows(new Set());
+
+      // Reload data dari server
+      const reloadResponse = await fetch(
+        `${endpoint}?sheet=DataKehadiran${selectedSemester}`
+      );
+      if (reloadResponse.ok) {
+        const reloadJson = await reloadResponse.json();
+        setData(reloadJson);
+      }
+
+      refreshRekapData(true);
+    } catch (err) {
+      alert(
+        "❌ Gagal menyimpan: " +
+          (err instanceof Error ? err.message : "Unknown error")
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const updateFloatingButtonPosition = (
     element: HTMLInputElement,
     rowIndex: number,
@@ -4677,6 +4882,16 @@ const DataKehadiran = () => {
       </div>
     );
 
+  const calcPersen = (row: any): string => {
+    const hadir = parseFloat(row.Data4 || "0") || 0;
+    const alpha = parseFloat(row.Data5 || "0") || 0;
+    const izin = parseFloat(row.Data6 || "0") || 0;
+    const sakit = parseFloat(row.Data7 || "0") || 0;
+    const total = hadir + alpha + izin + sakit;
+    if (total === 0) return "-";
+    return ((hadir / total) * 100).toFixed(1) + "%";
+  };
+
   const headers = [
     "Data1",
     "Data2",
@@ -4685,13 +4900,12 @@ const DataKehadiran = () => {
     "Data5",
     "Data6",
     "Data7",
-    "Data8",
   ];
   const displayHeaders = headers.map((header) => data[0][header] || "");
   const actualData = data.slice(1);
 
-  // Data1=No, Data2=Kelas, Data3=Nama, Data4=Hadir, Data5=Alpha, Data6=Izin, Data7=Sakit, Data8=Total Pertemuan
-  const readOnlyHeaders = new Set(["Data1", "Data2", "Data3", "Data8"]);
+  // Data1=No, Data2=Kelas, Data3=Nama, Data4=Hadir, Data5=Alpha, Data6=Izin, Data7=Sakit
+  const readOnlyHeaders = new Set(["Data1", "Data2", "Data3"]);
   const editableHeaders = ["Data4", "Data5", "Data6", "Data7"]; // Hadir, Alpha, Izin, Sakit
   const hiddenHeaders = new Set(["Data2", "Data3"]); // Data1 asumsikan NISN/No, Data2=Kelas
   const visibleHeaders = headers.filter((header) => !hiddenHeaders.has(header));
@@ -4722,6 +4936,7 @@ const DataKehadiran = () => {
           onChange={(e) => {
             setSelectedSemester(e.target.value);
             setChangedRows(new Set());
+            setIsEditMode(false);
           }}
           style={{
             padding: "10px 15px",
@@ -4738,26 +4953,94 @@ const DataKehadiran = () => {
         </select>
       </div>
 
-      {/* Tombol Save */}
-      <div style={{ textAlign: "center", marginBottom: "15px" }}>
+      {/* Tombol Save & Edit */}
+      <div
+        style={{
+          textAlign: "center",
+          marginBottom: "15px",
+          display: "flex",
+          gap: "10px",
+          justifyContent: "center",
+          flexWrap: "wrap",
+        }}
+      >
         <button
           onClick={handleSaveAll}
+          disabled={isSaving || !isEditMode}
+          style={{
+            padding: "12px 24px",
+            backgroundColor: isSaving || !isEditMode ? "#ccc" : "#4CAF50",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: isSaving || !isEditMode ? "not-allowed" : "pointer",
+            fontWeight: "bold",
+            fontSize: "16px",
+            maxWidth: "300px",
+          }}
+        >
+          {isSaving ? "Memproses..." : `Simpan Perubahan (${changedRows.size})`}
+        </button>
+        <button
+          onClick={() => {
+            if (isEditMode) {
+              const confirm = window.confirm(
+                "⚠️ Batal edit?\n\nSemua perubahan yang belum disimpan akan dikembalikan."
+              );
+              if (!confirm) return;
+              setChangedRows(new Set());
+              setIsEditMode(false);
+              setShowFloatingButton(false);
+              setActiveInput(null);
+            } else {
+              setIsEditMode(true);
+            }
+          }}
           disabled={isSaving}
           style={{
             padding: "12px 24px",
-            backgroundColor: isSaving ? "#ccc" : "#4CAF50",
+            backgroundColor: isEditMode ? "#FF9800" : "#2196F3",
             color: "white",
             border: "none",
             borderRadius: "4px",
             cursor: isSaving ? "not-allowed" : "pointer",
             fontWeight: "bold",
             fontSize: "16px",
-            width: "100%",
             maxWidth: "300px",
           }}
         >
-          {isSaving ? "Memproses..." : `Simpan Perubahan (${changedRows.size})`}
+          {isEditMode ? "❌ Batal Edit" : "✏️ Edit Nilai"}
         </button>
+        <label
+          htmlFor="import-kehadiran-file"
+          style={{
+            padding: "12px 24px",
+            backgroundColor: "#9C27B0",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "16px",
+            maxWidth: "300px",
+            display: "inline-block",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.backgroundColor = "#7B1FA2")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.backgroundColor = "#9C27B0")
+          }
+        >
+          📥 Import Excel
+        </label>
+        <input
+          id="import-kehadiran-file"
+          type="file"
+          accept=".xlsx,.xls"
+          style={{ display: "none" }}
+          onChange={handleImportKehadiran}
+        />
       </div>
 
       {/* Table */}
@@ -4783,6 +5066,24 @@ const DataKehadiran = () => {
         >
           <thead style={{ position: "sticky", top: 0, zIndex: 100 }}>
             <tr style={{ backgroundColor: "#f4f4f4" }}>
+              <th
+                style={{
+                  padding: "8px 4px",
+                  textAlign: "center",
+                  borderBottom: "2px solid #ddd",
+                  fontWeight: "bold",
+                  width: "40px",
+                  minWidth: "40px",
+                  position: "sticky",
+                  left: 0,
+                  backgroundColor: "#f4f4f4",
+                  zIndex: 2,
+                  boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+                  fontSize: "12px",
+                }}
+              >
+                No.
+              </th>
               {visibleDisplayHeaders.map((header, index) => {
                 const currentHeader = visibleHeaders[index];
                 return (
@@ -4793,10 +5094,10 @@ const DataKehadiran = () => {
                       textAlign: "center",
                       borderBottom: "2px solid #ddd",
                       fontWeight: "bold",
-                      width: currentHeader === "Data1" ? "200px" : "100px",
-                      minWidth: currentHeader === "Data1" ? "200px" : "100px",
+                      width: currentHeader === "Data1" ? "150px" : "60px",
+                      minWidth: currentHeader === "Data1" ? "150px" : "60px",
                       position: currentHeader === "Data1" ? "sticky" : "static",
-                      left: currentHeader === "Data1" ? 0 : "auto",
+                      left: currentHeader === "Data1" ? "40px" : "auto",
                       backgroundColor: "#f4f4f4",
                       zIndex: currentHeader === "Data1" ? 2 : 1,
                       boxShadow:
@@ -4810,6 +5111,20 @@ const DataKehadiran = () => {
                   </th>
                 );
               })}
+              <th
+                style={{
+                  padding: "8px 4px",
+                  textAlign: "center",
+                  borderBottom: "2px solid #ddd",
+                  fontWeight: "bold",
+                  width: "60px",
+                  minWidth: "60px",
+                  fontSize: "12px",
+                  backgroundColor: "#e3f2fd",
+                }}
+              >
+                % Hadir
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -4820,9 +5135,28 @@ const DataKehadiran = () => {
                   backgroundColor: rowIndex % 2 === 0 ? "#fff" : "#f9f9f9",
                 }}
               >
+                <td
+                  style={{
+                    padding: "6px 4px",
+                    borderBottom: "1px solid #eee",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    color: "#666",
+                    width: "40px",
+                    minWidth: "40px",
+                    position: "sticky",
+                    left: 0,
+                    backgroundColor: rowIndex % 2 === 0 ? "#fff" : "#f9f9f9",
+                    zIndex: 1,
+                    boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+                    fontSize: "12px",
+                  }}
+                >
+                  {rowIndex + 1}
+                </td>
                 {visibleHeaders.map((header, colIndex) => {
                   const isNama = header === "Data1";
-                  const isEditable = editableHeaders.indexOf(header) !== -1; // Sudah dari instruksi sebelumnya
+                  const isEditable = editableHeaders.indexOf(header) !== -1;
                   return (
                     <td
                       key={colIndex}
@@ -4830,7 +5164,9 @@ const DataKehadiran = () => {
                         padding: "4px",
                         borderBottom: "1px solid #eee",
                         position: header === "Data1" ? "sticky" : "static",
-                        left: header === "Data1" ? 0 : "auto",
+                        left: header === "Data1" ? "40px" : "auto",
+                        width: header === "Data1" ? "150px" : "60px",
+                        minWidth: header === "Data1" ? "150px" : "60px",
                         backgroundColor:
                           header === "Data1"
                             ? rowIndex % 2 === 0
@@ -4849,7 +5185,7 @@ const DataKehadiran = () => {
                           style={{
                             padding: "4px 2px",
                             color: "#666",
-                            fontSize: "12px",
+                            fontSize: "11px",
                             textAlign: isNama ? "left" : "center",
                             cursor: header === "Data1" ? "pointer" : "default",
                           }}
@@ -4873,6 +5209,7 @@ const DataKehadiran = () => {
                           inputMode="decimal"
                           pattern="[0-9]*"
                           value={row[header] || ""}
+                          disabled={!isEditMode}
                           onChange={(e) =>
                             handleInputChange(rowIndex, header, e.target.value)
                           }
@@ -4915,19 +5252,47 @@ const DataKehadiran = () => {
                           }}
                           style={{
                             width: "100%",
-                            padding: "4px 2px",
-                            border: "1px solid #ddd",
+                            padding: "2px",
+                            border: isEditMode
+                              ? "1px solid #ddd"
+                              : "1px solid #eee",
                             borderRadius: "3px",
                             boxSizing: "border-box",
-                            backgroundColor: "white",
-                            fontSize: "12px",
+                            backgroundColor: isEditMode ? "white" : "#f5f5f5",
+                            cursor: isEditMode ? "text" : "not-allowed",
+                            fontSize: "11px",
                             textAlign: "center",
+                            color: isEditMode ? "#000" : "#666",
                           }}
                         />
                       )}
                     </td>
                   );
                 })}
+                <td
+                  style={{
+                    padding: "4px",
+                    borderBottom: "1px solid #eee",
+                    textAlign: "center",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    color:
+                      calcPersen(row) === "-"
+                        ? "#999"
+                        : parseFloat(calcPersen(row)) >= 75
+                        ? "#2e7d32"
+                        : "#e65100",
+                    backgroundColor:
+                      calcPersen(row) === "-"
+                        ? "transparent"
+                        : parseFloat(calcPersen(row)) >= 75
+                        ? "#e8f5e9"
+                        : "#fff3e0",
+                    borderRadius: "3px",
+                  }}
+                >
+                  {calcPersen(row)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -4965,6 +5330,459 @@ const DataKehadiran = () => {
           ↓
         </button>
       )}
+
+      {/* Modal Preview Import */}
+      {importPreview && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setImportPreview(null)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "8px",
+              padding: "24px",
+              maxWidth: "600px",
+              width: "90%",
+              maxHeight: "85vh",
+              overflowY: "auto",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+                borderBottom: "2px solid #9C27B0",
+                paddingBottom: "10px",
+              }}
+            >
+              <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
+                👁️ Preview Import Kehadiran
+              </h2>
+              <button
+                onClick={() => setImportPreview(null)}
+                style={{
+                  backgroundColor: "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Ringkasan */}
+            <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+              <div
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  backgroundColor: "#e8f5e9",
+                  borderRadius: "6px",
+                  border: "1px solid #4CAF50",
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "22px",
+                    fontWeight: "bold",
+                    color: "#2e7d32",
+                  }}
+                >
+                  {importPreview.matched.length}
+                </div>
+                <div style={{ fontSize: "12px", color: "#555" }}>
+                  Siswa cocok
+                </div>
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  backgroundColor: "#fff3e0",
+                  borderRadius: "6px",
+                  border: "1px solid #ff9800",
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "22px",
+                    fontWeight: "bold",
+                    color: "#e65100",
+                  }}
+                >
+                  {importPreview.notFound.length}
+                </div>
+                <div style={{ fontSize: "12px", color: "#555" }}>
+                  Tidak cocok
+                </div>
+              </div>
+            </div>
+
+            {/* Tabel preview data yang cocok */}
+            {importPreview.matched.length > 0 && (
+              <div style={{ marginBottom: "16px" }}>
+                <p
+                  style={{
+                    margin: "0 0 8px",
+                    fontWeight: "bold",
+                    color: "#2e7d32",
+                    fontSize: "14px",
+                  }}
+                >
+                  ✅ Data yang akan diimport:
+                </p>
+                <div style={{ overflowX: "auto" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: "12px",
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ backgroundColor: "#f3e5f5" }}>
+                        <th
+                          style={{
+                            padding: "6px 8px",
+                            border: "1px solid #ddd",
+                            textAlign: "left",
+                          }}
+                        >
+                          Nama
+                        </th>
+                        <th
+                          style={{
+                            padding: "6px 8px",
+                            border: "1px solid #ddd",
+                            textAlign: "center",
+                          }}
+                        >
+                          Hadir
+                        </th>
+                        <th
+                          style={{
+                            padding: "6px 8px",
+                            border: "1px solid #ddd",
+                            textAlign: "center",
+                          }}
+                        >
+                          Alpha
+                        </th>
+                        <th
+                          style={{
+                            padding: "6px 8px",
+                            border: "1px solid #ddd",
+                            textAlign: "center",
+                          }}
+                        >
+                          Izin
+                        </th>
+                        <th
+                          style={{
+                            padding: "6px 8px",
+                            border: "1px solid #ddd",
+                            textAlign: "center",
+                          }}
+                        >
+                          Sakit
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.matched.map((item, i) => (
+                        <tr
+                          key={i}
+                          style={{
+                            backgroundColor: i % 2 === 0 ? "#fff" : "#f9f9f9",
+                          }}
+                        >
+                          <td
+                            style={{
+                              padding: "5px 8px",
+                              border: "1px solid #eee",
+                            }}
+                          >
+                            {item.nama}
+                          </td>
+                          <td
+                            style={{
+                              padding: "5px 8px",
+                              border: "1px solid #eee",
+                              textAlign: "center",
+                            }}
+                          >
+                            {item.hadir}
+                          </td>
+                          <td
+                            style={{
+                              padding: "5px 8px",
+                              border: "1px solid #eee",
+                              textAlign: "center",
+                            }}
+                          >
+                            {item.alpha}
+                          </td>
+                          <td
+                            style={{
+                              padding: "5px 8px",
+                              border: "1px solid #eee",
+                              textAlign: "center",
+                            }}
+                          >
+                            {item.izin}
+                          </td>
+                          <td
+                            style={{
+                              padding: "5px 8px",
+                              border: "1px solid #eee",
+                              textAlign: "center",
+                            }}
+                          >
+                            {item.sakit}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Daftar nama tidak cocok */}
+            {importPreview.notFound.length > 0 && (
+              <div
+                style={{
+                  marginBottom: "16px",
+                  padding: "12px",
+                  backgroundColor: "#fff3e0",
+                  borderRadius: "6px",
+                  border: "1px solid #ff9800",
+                }}
+              >
+                <p
+                  style={{
+                    margin: "0 0 6px",
+                    fontSize: "13px",
+                    color: "#e65100",
+                    fontWeight: "bold",
+                  }}
+                >
+                  ⚠️ Nama berikut tidak ditemukan di Excel (tidak akan
+                  diimport):
+                </p>
+                <p
+                  style={{ margin: "0 0 6px", fontSize: "11px", color: "#777" }}
+                >
+                  Nama harus sama persis termasuk huruf kapital dan spasi.
+                </p>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "18px",
+                    fontSize: "12px",
+                    color: "#555",
+                  }}
+                >
+                  {importPreview.notFound.map((nama, i) => (
+                    <li key={i}>{nama}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Tombol Batal & Kirim */}
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                onClick={() => setImportPreview(null)}
+                style={{
+                  padding: "10px 24px",
+                  backgroundColor: "#757575",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                }}
+              >
+                ❌ Batal
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                disabled={importPreview.matched.length === 0 || isSaving}
+                style={{
+                  padding: "10px 24px",
+                  backgroundColor:
+                    importPreview.matched.length === 0 || isSaving
+                      ? "#ccc"
+                      : "#4CAF50",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor:
+                    importPreview.matched.length === 0 || isSaving
+                      ? "not-allowed"
+                      : "pointer",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                }}
+              >
+                {isSaving
+                  ? "⏳ Menyimpan..."
+                  : `✅ Kirim Data (${importPreview.matched.length} siswa)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Hasil Import */}
+      {importResult && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setImportResult(null)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "8px",
+              padding: "24px",
+              maxWidth: "480px",
+              width: "90%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+                borderBottom: "2px solid #4CAF50",
+                paddingBottom: "10px",
+              }}
+            >
+              <h2 style={{ margin: 0, color: "#333", fontSize: "18px" }}>
+                ✅ Hasil Import Kehadiran
+              </h2>
+              <button
+                onClick={() => setImportResult(null)}
+                style={{
+                  backgroundColor: "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Tutup
+              </button>
+            </div>
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "12px",
+                backgroundColor: "#e8f5e9",
+                borderRadius: "6px",
+                border: "1px solid #4CAF50",
+              }}
+            >
+              <p style={{ margin: 0, fontSize: "15px", color: "#2e7d32" }}>
+                ✅ <strong>{importResult.matched} siswa</strong> berhasil
+                diimport
+              </p>
+              <p style={{ margin: "6px 0 0", fontSize: "12px", color: "#555" }}>
+                Klik "Simpan Perubahan" untuk menyimpan ke server.
+              </p>
+            </div>
+            {importResult.notFound.length > 0 && (
+              <div
+                style={{
+                  padding: "12px",
+                  backgroundColor: "#fff3e0",
+                  borderRadius: "6px",
+                  border: "1px solid #ff9800",
+                }}
+              >
+                <p
+                  style={{
+                    margin: "0 0 8px",
+                    fontSize: "14px",
+                    color: "#e65100",
+                    fontWeight: "bold",
+                  }}
+                >
+                  ⚠️ {importResult.notFound.length} nama siswa tidak cocok
+                  dengan data Excel:
+                </p>
+                <p
+                  style={{ margin: "0 0 8px", fontSize: "12px", color: "#777" }}
+                >
+                  Nama harus sama persis termasuk huruf kapital dan spasi.
+                </p>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "20px",
+                    fontSize: "13px",
+                    color: "#555",
+                  }}
+                >
+                  {importResult.notFound.map((nama, i) => (
+                    <li key={i}>{nama}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {showStudentPopup && selectedStudent && (
         <div
           style={{
