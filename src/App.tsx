@@ -11731,6 +11731,30 @@ const RekapNilai = () => {
     }
   };
 
+  const compressImageToBase64 = (
+    base64: string,
+    maxWidth = 200,
+    quality = 0.5
+  ): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d")!;
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = base64.startsWith("data:")
+        ? base64
+        : "data:image/png;base64," + base64;
+    });
+  };
+
   const downloadAllRekapPDF = async () => {
     if (filteredData.length === 0) return;
     setIsDownloadingAll(true);
@@ -11894,7 +11918,7 @@ const RekapNilai = () => {
 
       let isFirstPage = true;
 
-      Object.entries(groupedByKelas).forEach(([kelas, rows]) => {
+      Object.entries(groupedByKelas).forEach(async ([kelas, rows]) => {
         if (!isFirstPage) {
           doc.addPage();
         }
@@ -12287,12 +12311,12 @@ const RekapNilai = () => {
         // TTD Kepsek
         if (currentSchoolData?.ttdKepsek) {
           try {
-            const ttdKepsekData = currentSchoolData.ttdKepsek.startsWith(
-              "data:"
-            )
-              ? currentSchoolData.ttdKepsek
-              : "data:image/png;base64," + currentSchoolData.ttdKepsek;
-            doc.addImage(ttdKepsekData, "PNG", kepsekX, ttdStartY + 7, 30, 15);
+            const compressed = await compressImageToBase64(
+              currentSchoolData.ttdKepsek,
+              800,
+              1.0
+            );
+            doc.addImage(compressed, "JPEG", kepsekX, ttdStartY + 7, 30, 15);
           } catch (e) {
             console.warn("Gagal load TTD Kepsek:", e);
           }
@@ -12301,10 +12325,12 @@ const RekapNilai = () => {
         // TTD Guru
         if (currentSchoolData?.ttdGuru) {
           try {
-            const ttdGuruData = currentSchoolData.ttdGuru.startsWith("data:")
-              ? currentSchoolData.ttdGuru
-              : "data:image/png;base64," + currentSchoolData.ttdGuru;
-            doc.addImage(ttdGuruData, "PNG", guruX, ttdStartY + 7, 30, 15);
+            const compressed = await compressImageToBase64(
+              currentSchoolData.ttdGuru,
+              800,
+              1.0
+            );
+            doc.addImage(compressed, "JPEG", guruX, ttdStartY + 7, 30, 15);
           } catch (e) {
             console.warn("Gagal load TTD Guru:", e);
           }
@@ -13091,10 +13117,12 @@ const RekapNilai = () => {
 
       if (latestSchoolData?.ttdGuru) {
         try {
-          const ttdGuruData = latestSchoolData.ttdGuru.startsWith("data:")
-            ? latestSchoolData.ttdGuru
-            : "data:image/png;base64," + latestSchoolData.ttdGuru;
-          doc.addImage(ttdGuruData, "PNG", rightColTTD - 4, ttdY + 17, 40, 20);
+          const compressed = await compressImageToBase64(
+            latestSchoolData.ttdGuru,
+            800,
+            1.0
+          );
+          doc.addImage(compressed, "JPEG", rightColTTD - 4, ttdY + 17, 40, 20);
         } catch (error) {
           console.log("Error adding guru signature:", error);
         }
@@ -13127,12 +13155,14 @@ const RekapNilai = () => {
 
       if (latestSchoolData?.ttdKepsek) {
         try {
-          const ttdKepsekData = latestSchoolData.ttdKepsek.startsWith("data:")
-            ? latestSchoolData.ttdKepsek
-            : "data:image/png;base64," + latestSchoolData.ttdKepsek;
+          const compressed = await compressImageToBase64(
+            latestSchoolData.ttdKepsek,
+            800,
+            1.0
+          );
           doc.addImage(
-            ttdKepsekData,
-            "PNG",
+            compressed,
+            "JPEG",
             centerColTTD - 20,
             kepsekY + 7,
             40,
@@ -14230,7 +14260,7 @@ const AppContent = () => {
               </h2>
 
               <Link
-                to="/data-siswa"
+                to="/"
                 onClick={() => setMenuOpen(false)}
                 style={{
                   padding: "15px 20px",
