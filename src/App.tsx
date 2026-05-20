@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Link,
+  useNavigate,
+} from "react-router-dom";
 import jsPDF from "jspdf"; // Tambahkan impor ini
 import autoTable from "jspdf-autotable";
 import SignatureCanvas from "react-signature-canvas";
@@ -1111,748 +1117,779 @@ const InputNilai = () => {
 
   const handleDownloadPDF = async () => {
     if (data.length === 0) return;
+    setIsSaving(true);
 
-    // Ambil data sekolah terbaru
-    let schoolData: SchoolData | null = null;
     try {
-      const schoolRes = await fetch(`${endpoint}?action=schoolData`);
-      if (schoolRes.ok) {
-        const schoolJson = await schoolRes.json();
-        if (schoolJson.success && schoolJson.data?.length > 0) {
-          schoolData = schoolJson.data[0];
+      // Ambil data sekolah terbaru
+      let schoolData: SchoolData | null = null;
+      try {
+        const schoolRes = await fetch(`${endpoint}?action=schoolData`);
+        if (schoolRes.ok) {
+          const schoolJson = await schoolRes.json();
+          if (schoolJson.success && schoolJson.data?.length > 0) {
+            schoolData = schoolJson.data[0];
+          }
         }
+      } catch (e) {
+        console.warn("Gagal fetch schoolData:", e);
       }
-    } catch (e) {
-      console.warn("Gagal fetch schoolData:", e);
-    }
 
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "a4",
-    });
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
 
-    const pageW = 297;
-    const margin = 10;
+      const pageW = 297;
+      const margin = 10;
 
-    const mapel = actualData[0]?.Data1 || "N/A";
-    const kelas = actualData[0]?.Data3 || "N/A";
-    const semester = actualData[0]?.Data2 || "N/A";
+      const mapel = actualData[0]?.Data1 || "N/A";
+      const kelas = actualData[0]?.Data3 || "N/A";
+      const semester = actualData[0]?.Data2 || "N/A";
 
-    visibleHeaders.forEach((header, idx) => {
-      const dispH = data[0][header] || "";
-      console.log(
-        `Header: "${header}" | Display: "${dispH}" | charCodes:`,
-        [...dispH].map((c) => c.charCodeAt(0)) // expand array ini
-      );
-    });
-
-    // ─── JUDUL ───
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("DAFTAR NILAI SISWA", pageW / 2, margin + 5, { align: "center" });
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(
-      `Mata Pelajaran: ${mapel}   |   Kelas: ${kelas}   |   Semester: ${semester}`,
-      pageW / 2,
-      margin + 11,
-      { align: "center" }
-    );
-
-    // ─── KATEGORIKAN KOLOM ───
-    // Cek apakah display header adalah kode TP (format angka.angka seperti "6.1")
-    const isTPHeader = (headerDisplay: string): boolean => {
-      // Hapus Zero Width Space (\u200B) dan karakter tersembunyi lainnya
-      const cleaned = headerDisplay.replace(
-        /[\u200B\u200C\u200D\uFEFF\s]/g,
-        ""
-      );
-      return /^\d+\.\d+$/.test(cleaned);
-    };
-
-    // Cek apakah kolom adalah Sumatif Lingkup Materi (Data22)
-    const isSLMHeader = (headerDisplay: string): boolean => {
-      return (
-        /^(BAB|Bab|bab)\s*\d+$/i.test(headerDisplay.trim()) ||
-        /^\d+$/.test(headerDisplay.trim())
-      );
-    };
-
-    // ─── HITUNG SPAN UNTUK MERGED HEADER ───
-    // Kelompokkan kolom: no, nama, [TP group], [SLM group], [sisanya]
-    let tpCount = 0;
-    let slmCount = 0;
-    let otherCount = 0; // kolom selain nama, TP, SLM
-
-    const namaColIdx = 1; // index 0 = No, index 1 = Nama
-
-    // Filter Data32 agar tidak muncul di PDF
-    const pdfHeaders = visibleHeaders.filter((h) => h !== "Data32");
-
-    const colCategories = pdfHeaders.map((header, idx) => {
-      const dispHeader = data[0][header] || "";
-      if (isTPHeader(dispHeader)) return "TP";
-      if (isSLMHeader(dispHeader)) return "SLM";
-      return "OTHER";
-    });
-
-    tpCount = colCategories.filter((c) => c === "TP").length;
-    slmCount = colCategories.filter((c) => c === "SLM").length;
-    otherCount = colCategories.filter((c) => c === "OTHER").length;
-
-    // ─── HITUNG LEBAR KOLOM ───
-    const noColW = 8;
-    const namaColW = 38;
-    const fixedColW = 16; // lebar fixed untuk Data20, Data21, Data22, Data23
-
-    // Hitung jumlah kolom fixed (non-TP/SLM, non-nama)
-    const fixedSpecialHeaders = new Set([
-      "Data20",
-      "Data21",
-      "Data22",
-      "Data23",
-    ]);
-    const fixedSpecialCount = visibleHeaders.filter((h) =>
-      fixedSpecialHeaders.has(h)
-    ).length;
-    const dynamicHeaders = visibleHeaders.filter(
-      (h) => !fixedSpecialHeaders.has(h) && h !== "Data4"
-    );
-
-    // Total lebar yang sudah terpakai oleh kolom fixed
-    const usedWidth =
-      margin * 2 + noColW + namaColW + fixedSpecialCount * fixedColW;
-
-    // Sisa lebar dibagi rata ke kolom TP dan SLM
-    const remainingW = pageW - usedWidth;
-
-    // Hitung lebar minimum setiap kolom TP/SLM berdasarkan lebar teks headernya
-    const getMinTPColW = (headerText: string): number => {
-      // ✅ Bersihkan \u200B sebelum hitung lebar
-      const cleanText = headerText
-        .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
-        .trim();
-      doc.setFontSize(6.5);
-      const textW = doc.getTextWidth(cleanText);
-      return textW + 4;
-    };
-
-    // Hitung total lebar yang dibutuhkan kolom TP/SLM
-    let totalTPSLMNeeded = 0;
-    let otherDynamicCount = 0;
-    dynamicHeaders.forEach((header) => {
-      const dispH = (data[0][header] || "")
-        .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
-        .trim();
-      const cat = colCategories[visibleHeaders.indexOf(header)];
-      if (cat === "TP" || cat === "SLM") {
-        totalTPSLMNeeded += getMinTPColW(dispH);
-      } else {
-        otherDynamicCount++;
-      }
-    });
-
-    // Sisa lebar untuk kolom OTHER (N.A.SUMATIF TP, RANKING, dst)
-    const remainingForOther = remainingW - totalTPSLMNeeded;
-    const otherColW =
-      otherDynamicCount > 0 ? remainingForOther / otherDynamicCount : 10;
-
-    const baseColW = otherColW;
-
-    // Lebar khusus per kolom
-    const getColW = (header: string): number => {
-      if (header === "Data4") return namaColW;
-      if (header === "Data20") return fixedColW;
-      if (header === "Data21") return fixedColW;
-      if (header === "Data22") return fixedColW;
-      if (header === "Data23") return fixedColW;
-      const dispH = data[0][header] || "";
-      const cat = colCategories[visibleHeaders.indexOf(header)];
-      if (cat === "TP" || cat === "SLM") {
-        return getMinTPColW(dispH); // lebar pas dengan teks
-      }
-      return baseColW;
-    };
-
-    // ─── BUAT HEADER ROW 1 (merged group header) ───
-    // Menggunakan pendekatan manual dengan jsPDF karena autoTable
-    // tidak support rowspan/colspan secara native.
-    // Kita gambar 2 baris header manual, lalu body dengan autoTable.
-
-    const startY = margin + 15;
-    const headerRow1H = 8; // tinggi baris group header
-    const headerRow2H = 10; // tinggi baris sub header (TP codes)
-    const bodyRowH = 5;
-
-    // Hitung posisi X setiap kolom
-    const colPositions: number[] = [];
-    const colWidths: number[] = [];
-
-    // Kolom No
-    colPositions.push(margin);
-    colWidths.push(noColW);
-
-    // Kolom dari visibleHeaders
-    let currentX = margin + noColW;
-    pdfHeaders.forEach((header) => {
-      colPositions.push(currentX);
-      const w = getColW(header);
-      colWidths.push(w);
-      currentX += w;
-    });
-
-    // ─── GAMBAR HEADER ROW 1 (group labels) ───
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "bold");
-
-    // Hitung X dan W untuk group TP
-    let tpStartX = 0;
-    let tpTotalW = 0;
-    let slmStartX = 0;
-    let slmTotalW = 0;
-
-    pdfHeaders.forEach((header, idx) => {
-      const cat = colCategories[idx];
-      const x = colPositions[idx + 1];
-      const w = colWidths[idx + 1];
-
-      if (cat === "TP") {
-        if (tpStartX === 0) tpStartX = x;
-        tpTotalW += w;
-      }
-      if (cat === "SLM") {
-        if (slmStartX === 0) slmStartX = x;
-        slmTotalW += w;
-      }
-    });
-
-    // Kolom "No" - rowspan 2 (gambar manual)
-    doc.setFillColor(41, 128, 185); // biru tua
-    doc.setTextColor(255, 255, 255);
-    doc.rect(margin, startY, noColW, headerRow1H + headerRow2H, "FD");
-    doc.text(
-      "NO",
-      margin + noColW / 2,
-      startY + (headerRow1H + headerRow2H) / 2 + 2,
-      {
-        align: "center",
-      }
-    );
-
-    // Kolom "Nama Siswa" - rowspan 2
-    const namaX = colPositions[1];
-    doc.setFillColor(41, 128, 185);
-    doc.rect(namaX, startY, namaColW, headerRow1H + headerRow2H, "FD");
-    doc.text(
-      "NAMA SISWA",
-      namaX + namaColW / 2,
-      startY + (headerRow1H + headerRow2H) / 2 + 2,
-      {
-        align: "center",
-      }
-    );
-
-    // Group "SUMATIF TUJUAN PEMBELAJARAN" - hanya row 1
-    if (tpCount > 0) {
-      doc.setFillColor(0, 176, 240);
-      doc.setTextColor(255, 0, 0);
-      doc.rect(tpStartX, startY, tpTotalW, headerRow1H, "FD");
+      // ─── JUDUL ───
       doc.setFont("helvetica", "bold");
-
-      // Auto-fit font size agar teks tidak melebihi lebar kolom
-      const tpText = "SUMATIF TUJUAN PEMBELAJARAN";
-      let tpFontSize = 7;
-      doc.setFontSize(tpFontSize);
-      while (doc.getTextWidth(tpText) > tpTotalW - 2 && tpFontSize > 3) {
-        tpFontSize -= 0.5;
-        doc.setFontSize(tpFontSize);
-      }
-
-      doc.text(tpText, tpStartX + tpTotalW / 2, startY + headerRow1H / 2 + 2, {
+      doc.setFontSize(13);
+      doc.text("DAFTAR NILAI SISWA", pageW / 2, margin + 5, {
         align: "center",
       });
-    }
 
-    // Group "SUMATIF LINGKUP MATERI" - hanya row 1
-    if (slmCount > 0) {
-      doc.setFillColor(0, 176, 240);
-      doc.setTextColor(255, 0, 0);
-      doc.rect(slmStartX, startY, slmTotalW, headerRow1H, "FD");
-      doc.setFont("helvetica", "bold");
-
-      // Auto-fit font size agar teks tidak melebihi lebar kolom
-      const slmText = "SUMATIF LINGKUP MATERI";
-      let slmFontSize = 7;
-      doc.setFontSize(slmFontSize);
-      while (doc.getTextWidth(slmText) > slmTotalW - 2 && slmFontSize > 3) {
-        slmFontSize -= 0.5;
-        doc.setFontSize(slmFontSize);
-      }
-
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
       doc.text(
-        slmText,
-        slmStartX + slmTotalW / 2,
-        startY + headerRow1H / 2 + 2,
+        `Mata Pelajaran: ${mapel}   |   Kelas: ${kelas}   |   Semester: ${semester}`,
+        pageW / 2,
+        margin + 11,
         { align: "center" }
       );
-    }
 
-    // Kolom OTHER selain nama: rowspan 2
-    visibleHeaders.forEach((header, idx) => {
-      const cat = colCategories[idx];
-      if (cat === "OTHER") {
-        const x = colPositions[idx + 1];
-        const w = colWidths[idx + 1];
-        const dispH = data[0][header] || header;
-        doc.setFillColor(41, 128, 185);
-        doc.setTextColor(255, 255, 255);
-        doc.rect(x, startY, w, headerRow1H + headerRow2H, "FD");
-        doc.setFontSize(6);
-        doc.setFont("helvetica", "bold");
-        // Split teks jika panjang
-        const lines = doc.splitTextToSize(dispH, w - 1);
-        const textY =
-          startY +
-          (headerRow1H + headerRow2H) / 2 -
-          ((lines.length - 1) * 3) / 2 +
-          2;
-        lines.forEach((line: string, li: number) => {
-          doc.text(line, x + w / 2, textY + li * 3.5, { align: "center" });
-        });
-      }
-    });
+      // ─── KATEGORIKAN KOLOM ───
+      // Cek apakah display header adalah kode TP (format angka.angka seperti "6.1")
+      const isTPHeader = (headerDisplay: string): boolean => {
+        // Hapus Zero Width Space (\u200B) dan karakter tersembunyi lainnya
+        const cleaned = headerDisplay.replace(
+          /[\u200B\u200C\u200D\uFEFF\s]/g,
+          ""
+        );
+        return /^\d+\.\d+$/.test(cleaned);
+      };
 
-    // ─── GAMBAR HEADER ROW 2 (sub header: kode TP) ───
-    const row2Y = startY + headerRow1H;
+      // Cek apakah kolom adalah Sumatif Lingkup Materi (Data22)
+      const isSLMHeader = (headerDisplay: string): boolean => {
+        return (
+          /^(BAB|Bab|bab)\s*\d+$/i.test(headerDisplay.trim()) ||
+          /^\d+$/.test(headerDisplay.trim())
+        );
+      };
 
-    pdfHeaders.forEach((header, idx) => {
-      const cat = colCategories[idx];
-      if (cat === "TP" || cat === "SLM") {
-        const x = colPositions[idx + 1];
-        const w = colWidths[idx + 1];
-        // ✅ Bersihkan \u200B dari display header
-        const dispH = (data[0][header] || header)
+      // ─── HITUNG SPAN UNTUK MERGED HEADER ───
+      // Kelompokkan kolom: no, nama, [TP group], [SLM group], [sisanya]
+      let tpCount = 0;
+      let slmCount = 0;
+      let otherCount = 0; // kolom selain nama, TP, SLM
+
+      const namaColIdx = 1; // index 0 = No, index 1 = Nama
+
+      // Filter Data32 agar tidak muncul di PDF
+      const pdfHeaders = visibleHeaders.filter(
+        (h) => h !== "Data32" && h !== "Data20" && h !== "Data21"
+      );
+
+      const colCategories = pdfHeaders.map((header, idx) => {
+        const dispHeader = data[0][header] || "";
+        if (isTPHeader(dispHeader)) return "TP";
+        if (isSLMHeader(dispHeader)) return "SLM";
+        return "OTHER";
+      });
+
+      tpCount = colCategories.filter((c) => c === "TP").length;
+      slmCount = colCategories.filter((c) => c === "SLM").length;
+      otherCount = colCategories.filter((c) => c === "OTHER").length;
+
+      // ─── HITUNG LEBAR KOLOM ───
+      const noColW = 8;
+      const namaColW = 38;
+      const fixedColW = 16; // lebar fixed untuk Data20, Data21, Data22, Data23
+
+      // Helper: lebar minimum kolom TP/SLM berdasarkan teks header
+      const getMinTPColW = (headerText: string): number => {
+        const cleanText = headerText
           .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
           .trim();
-
-        // Warna bergantian untuk TP
-        const colors: [number, number, number][] = [
-          [255, 153, 204], // pink
-          [255, 204, 153], // orange
-          [153, 255, 153], // hijau
-          [153, 204, 255], // biru
-          [204, 153, 255], // ungu
-          [255, 255, 153], // kuning
-        ];
-        const colorIdx = idx % colors.length;
-        doc.setFillColor(...colors[colorIdx]);
-        doc.setTextColor(0, 0, 0);
-        doc.rect(x, row2Y, w, headerRow2H, "FD");
         doc.setFontSize(6.5);
-        doc.setFont("helvetica", "bold");
+        return doc.getTextWidth(cleanText) + 4;
+      };
 
-        // Rotasi teks untuk header sempit
-        doc.text(dispH, x + w / 2, row2Y + headerRow2H - 2, {
-          align: "center",
-        });
-      }
-    });
+      // Lebar FIXED untuk kolom OTHER (tidak berubah)
+      const otherFixedW: { [key: string]: number } = {
+        Data22: fixedColW, // BAB/SLM fixed
+        Data23: fixedColW, // kolom fixed
+        Data24: 16, // NILAI_SAS
+        Data25: 16, // NILAI_MURNI
+      };
+      const defaultOtherW = 22; // NILAI_RAPOR, RANKING, dst
 
-    // ─── GAMBAR GARIS BORDER HEADER ───
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(0.3);
+      // Pisahkan kolom berdasarkan kategori
+      const tpslmHeaders: string[] = [];
+      const otherDynHeaders: string[] = [];
 
-    const lastX =
-      colPositions[colPositions.length - 1] + colWidths[colWidths.length - 1];
-
-    // Garis horizontal luar
-    doc.line(margin, startY, lastX, startY);
-    doc.line(
-      margin,
-      startY + headerRow1H + headerRow2H,
-      lastX,
-      startY + headerRow1H + headerRow2H
-    );
-
-    // Garis horizontal tengah (pemisah row1 dan row2)
-    // Hanya digambar di area yang BUKAN merged (bukan area TP dan SLM di row1,
-    // dan bukan area No/Nama yang rowspan 2)
-    // Kita gambar per segmen:
-    pdfHeaders.forEach((header, idx) => {
-      const cat = colCategories[idx];
-      const x = colPositions[idx + 1];
-      const w = colWidths[idx + 1];
-      // Garis tengah hanya untuk kolom TP dan SLM (karena kolom OTHER & No & Nama = rowspan 2)
-      if (cat === "TP" || cat === "SLM") {
-        doc.line(x, startY + headerRow1H, x + w, startY + headerRow1H);
-      }
-    });
-    // Garis tengah untuk area No dan Nama tidak digambar (rowspan)
-
-    // Garis vertikal - digambar per baris header agar tidak menembus merge
-    // Baris header 1 (startY sampai startY + headerRow1H):
-    // Gambar garis vertikal hanya di batas antar GROUP dan di tepi No/Nama
-
-    // Kiri luar
-    doc.line(margin, startY, margin, startY + headerRow1H + headerRow2H);
-    // Kanan luar
-    doc.line(lastX, startY, lastX, startY + headerRow1H + headerRow2H);
-
-    // Garis kanan kolom No (full height karena rowspan)
-    const noRightX = margin + noColW;
-    doc.line(noRightX, startY, noRightX, startY + headerRow1H + headerRow2H);
-
-    // Garis kanan kolom Nama (full height karena rowspan)
-    const namaRightX = colPositions[1] + namaColW;
-    doc.line(
-      namaRightX,
-      startY,
-      namaRightX,
-      startY + headerRow1H + headerRow2H
-    );
-
-    // Garis kanan grup TP (full height)
-    if (tpCount > 0) {
-      doc.line(
-        tpStartX + tpTotalW,
-        startY,
-        tpStartX + tpTotalW,
-        startY + headerRow1H + headerRow2H
-      );
-      // Garis kiri grup TP (full height)
-      doc.line(tpStartX, startY, tpStartX, startY + headerRow1H + headerRow2H);
-    }
-
-    // Garis kanan grup SLM (full height)
-    if (slmCount > 0) {
-      doc.line(
-        slmStartX + slmTotalW,
-        startY,
-        slmStartX + slmTotalW,
-        startY + headerRow1H + headerRow2H
-      );
-    }
-
-    // Garis vertikal antar kolom DALAM grup TP - hanya di baris row2
-    pdfHeaders.forEach((header, idx) => {
-      const cat = colCategories[idx];
-      if (cat === "TP") {
-        const x = colPositions[idx + 1];
-        // Jangan gambar garis kiri paling awal grup (sudah digambar di atas)
-        if (x > tpStartX) {
-          doc.line(
-            x,
-            startY + headerRow1H,
-            x,
-            startY + headerRow1H + headerRow2H
-          );
-        }
-      }
-      if (cat === "SLM") {
-        const x = colPositions[idx + 1];
-        if (x > slmStartX) {
-          doc.line(
-            x,
-            startY + headerRow1H,
-            x,
-            startY + headerRow1H + headerRow2H
-          );
-        }
-      }
-    });
-
-    // Garis vertikal kolom OTHER - full height (karena rowspan 2)
-    visibleHeaders.forEach((header, idx) => {
-      const cat = colCategories[idx];
-      if (cat === "OTHER") {
-        const x = colPositions[idx + 1];
-        doc.line(x, startY, x, startY + headerRow1H + headerRow2H);
-        const xRight = x + colWidths[idx + 1];
-        doc.line(xRight, startY, xRight, startY + headerRow1H + headerRow2H);
-      }
-    });
-
-    // ─── GAMBAR BODY DATA ───
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-
-    const bodyStartY = startY + headerRow1H + headerRow2H;
-    let currentY = bodyStartY;
-
-    actualData.forEach((row, rowIndex) => {
-      // Cek apakah perlu halaman baru
-      if (currentY + bodyRowH > 210 - margin) {
-        doc.addPage();
-        currentY = margin;
-      }
-
-      const bgColor: [number, number, number] =
-        rowIndex % 2 === 0 ? [224, 255, 255] : [255, 255, 255];
-
-      // Gambar background baris
-      doc.setFillColor(...bgColor);
-      doc.rect(margin, currentY, lastX - margin, bodyRowH, "F");
-
-      // No
-      doc.text(
-        String(rowIndex + 1),
-        margin + noColW / 2,
-        currentY + bodyRowH / 2 + doc.getFontSize() / 6,
-        { align: "center" }
-      );
-
-      // Data kolom
       pdfHeaders.forEach((header, idx) => {
+        if (header === "Data4") return; // Nama sudah fixed
+        const cat = colCategories[idx];
+        if (cat === "TP" || cat === "SLM") {
+          tpslmHeaders.push(header);
+        } else {
+          otherDynHeaders.push(header);
+        }
+      });
+
+      // Hitung total lebar terpakai oleh kolom FIXED (No + Nama + OTHER)
+      let totalFixedUsed = margin * 2 + noColW + namaColW;
+      otherDynHeaders.forEach((header) => {
+        totalFixedUsed += otherFixedW[header] ?? defaultOtherW;
+      });
+
+      // Sisa ruang PENUH untuk kolom TP/SLM
+      const remainingForTPSLM = pageW - totalFixedUsed;
+
+      // Hitung lebar minimum total TP/SLM
+      let totalTPSLMMin = 0;
+      tpslmHeaders.forEach((header) => {
+        const dispH = (data[0][header] || "")
+          .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+          .trim();
+        totalTPSLMMin += getMinTPColW(dispH);
+      });
+
+      // Extra lebar dibagi rata ke semua kolom TP/SLM
+      const extraPerTPSLM =
+        tpslmHeaders.length > 0
+          ? Math.max(
+              0,
+              (remainingForTPSLM - totalTPSLMMin) / tpslmHeaders.length
+            )
+          : 0;
+
+      // Fungsi lebar per kolom
+      const getColW = (header: string): number => {
+        if (header === "Data4") return namaColW;
+        const idx = pdfHeaders.indexOf(header);
+        const cat = idx >= 0 ? colCategories[idx] : "OTHER";
+        if (cat === "TP" || cat === "SLM") {
+          const dispH = (data[0][header] || "")
+            .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+            .trim();
+          return getMinTPColW(dispH) + extraPerTPSLM; // ✅ melebar mengisi sisa ruang
+        }
+        return otherFixedW[header] ?? defaultOtherW; // ✅ OTHER tetap fixed
+      };
+
+      const baseColW = defaultOtherW;
+
+      // ─── BUAT HEADER ROW 1 (merged group header) ───
+      // Menggunakan pendekatan manual dengan jsPDF karena autoTable
+      // tidak support rowspan/colspan secara native.
+      // Kita gambar 2 baris header manual, lalu body dengan autoTable.
+
+      const startY = margin + 15;
+      const headerRow1H = 8; // tinggi baris group header
+      const headerRow2H = 10; // tinggi baris sub header (TP codes)
+      const bodyRowH = 5;
+
+      // Hitung posisi X setiap kolom
+      const colPositions: number[] = [];
+      const colWidths: number[] = [];
+
+      // Kolom No
+      colPositions.push(margin);
+      colWidths.push(noColW);
+
+      // Kolom dari pdfHeaders
+      let currentX = margin + noColW;
+      pdfHeaders.forEach((header) => {
+        colPositions.push(currentX);
+        const w = getColW(header);
+        colWidths.push(w);
+        currentX += w;
+      });
+
+      // ✅ lastX dihitung dari currentX setelah semua kolom ditambahkan
+      const computedLastX = currentX;
+
+      // ─── GAMBAR HEADER ROW 1 (group labels) ───
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+
+      // Hitung X dan W untuk group TP
+      let tpStartX = 0;
+      let tpTotalW = 0;
+      let slmStartX = 0;
+      let slmTotalW = 0;
+
+      pdfHeaders.forEach((header, idx) => {
+        const cat = colCategories[idx];
         const x = colPositions[idx + 1];
         const w = colWidths[idx + 1];
-        const value =
-          row[header] !== undefined && row[header] !== null
-            ? String(row[header])
-            : "";
-        const isNama = header === "Data4";
+
+        if (cat === "TP") {
+          if (tpStartX === 0) tpStartX = x;
+          tpTotalW += w;
+        }
+        if (cat === "SLM") {
+          if (slmStartX === 0) slmStartX = x;
+          slmTotalW += w;
+        }
+      });
+
+      // Kolom "No" - rowspan 2 (gambar manual)
+      doc.setFillColor(41, 128, 185); // biru tua
+      doc.setTextColor(255, 255, 255);
+      doc.rect(margin, startY, noColW, headerRow1H + headerRow2H, "FD");
+      doc.text(
+        "NO",
+        margin + noColW / 2,
+        startY + (headerRow1H + headerRow2H) / 2 + 2,
+        {
+          align: "center",
+        }
+      );
+
+      // Kolom "Nama Siswa" - rowspan 2
+      const namaX = colPositions[1];
+      doc.setFillColor(41, 128, 185);
+      doc.rect(namaX, startY, namaColW, headerRow1H + headerRow2H, "FD");
+      doc.text(
+        "NAMA SISWA",
+        namaX + namaColW / 2,
+        startY + (headerRow1H + headerRow2H) / 2 + 2,
+        {
+          align: "center",
+        }
+      );
+
+      // Group "SUMATIF TUJUAN PEMBELAJARAN" - hanya row 1
+      if (tpCount > 0) {
+        doc.setFillColor(0, 176, 240);
+        doc.setTextColor(255, 0, 0);
+        doc.rect(tpStartX, startY, tpTotalW, headerRow1H, "FD");
+        doc.setFont("helvetica", "bold");
+
+        // Auto-fit font size agar teks tidak melebihi lebar kolom
+        const tpText = "SUMATIF TUJUAN PEMBELAJARAN";
+        let tpFontSize = 7;
+        doc.setFontSize(tpFontSize);
+        while (doc.getTextWidth(tpText) > tpTotalW - 2 && tpFontSize > 3) {
+          tpFontSize -= 0.5;
+          doc.setFontSize(tpFontSize);
+        }
 
         doc.text(
-          value,
-          isNama ? x + 1 : x + w / 2,
-          currentY + bodyRowH / 2 + doc.getFontSize() / 6,
-          { align: isNama ? "left" : "center", maxWidth: w - 1 }
+          tpText,
+          tpStartX + tpTotalW / 2,
+          startY + headerRow1H / 2 + 2,
+          {
+            align: "center",
+          }
         );
-      });
+      }
 
-      // Garis horizontal baris
-      doc.setDrawColor(180, 180, 180);
-      doc.setLineWidth(0.2);
-      doc.line(margin, currentY + bodyRowH, lastX, currentY + bodyRowH);
+      // Group "SUMATIF LINGKUP MATERI" - hanya row 1
+      if (slmCount > 0) {
+        doc.setFillColor(0, 176, 240);
+        doc.setTextColor(255, 0, 0);
+        doc.rect(slmStartX, startY, slmTotalW, headerRow1H, "FD");
+        doc.setFont("helvetica", "bold");
 
-      // Garis vertikal
-      colPositions.forEach((x) => {
-        doc.line(x, currentY, x, currentY + bodyRowH);
-      });
-      doc.line(lastX, currentY, lastX, currentY + bodyRowH);
-
-      currentY += bodyRowH;
-    });
-
-    // ─── FOOTER ───
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Total siswa: ${actualData.length}`, margin, currentY + 5);
-
-    // ─── FETCH DATA TP DARI SERVER ───
-    let tpTableData: { tp: string; rincian: string; bab: string }[] = [];
-    try {
-      const mapelName = actualData[0]?.Data1 || "";
-      const kelasName = actualData[0]?.Data3 || "";
-
-      const tpRes = await fetch(`${endpoint}?sheet=DataTP`);
-      if (tpRes.ok) {
-        const tpJson = await tpRes.json();
-        if (tpJson.length > 1) {
-          const tpRows = tpJson.slice(1);
-          tpTableData = tpRows
-            .filter((row: any) => {
-              const rowMapel = (row.Data1 || "").trim();
-              const rowKelas = String(row.Data6 || "").trim();
-              return (
-                rowMapel.toLowerCase() === mapelName.toLowerCase() &&
-                rowKelas === kelasName
-              );
-            })
-            .map((row: any) => ({
-              tp: String(row.Data2 || ""),
-              rincian: String(row.Data3 || ""),
-              bab: String(row.Data4 || ""),
-            }))
-            .filter((item: any) => item.tp && item.rincian);
+        // Auto-fit font size agar teks tidak melebihi lebar kolom
+        const slmText = "SUMATIF LINGKUP MATERI";
+        let slmFontSize = 7;
+        doc.setFontSize(slmFontSize);
+        while (doc.getTextWidth(slmText) > slmTotalW - 2 && slmFontSize > 3) {
+          slmFontSize -= 0.5;
+          doc.setFontSize(slmFontSize);
         }
-      }
-    } catch (e) {
-      console.warn("Gagal fetch DataTP:", e);
-    }
 
-    // ─── TABEL DAFTAR TP ───
-    if (tpTableData.length > 0) {
-      // Cek apakah perlu halaman baru
-      const tpTableHeight = 10 + tpTableData.length * 12 + 10; // estimasi tinggi
-      if (currentY + tpTableHeight + 20 > 210 - margin) {
-        doc.addPage();
-        currentY = margin + 5;
-      } else {
-        currentY += 8;
+        doc.text(
+          slmText,
+          slmStartX + slmTotalW / 2,
+          startY + headerRow1H / 2 + 2,
+          { align: "center" }
+        );
       }
 
-      // Judul tabel TP
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(0, 0, 0);
-      doc.text("DAFTAR TUJUAN PEMBELAJARAN (TP)", pageW / 2, currentY, {
-        align: "center",
+      // Kolom OTHER selain nama: rowspan 2
+      pdfHeaders.forEach((header, idx) => {
+        const cat = colCategories[idx];
+        if (cat === "OTHER") {
+          const x = colPositions[idx + 1];
+          const w = colWidths[idx + 1];
+          const dispH = data[0][header] || header;
+          doc.setFillColor(41, 128, 185);
+          doc.setTextColor(255, 255, 255);
+          doc.rect(x, startY, w, headerRow1H + headerRow2H, "FD");
+          doc.setFontSize(6);
+          doc.setFont("helvetica", "bold");
+          // Split teks jika panjang
+          const lines = doc.splitTextToSize(dispH, w - 1);
+          const textY =
+            startY +
+            (headerRow1H + headerRow2H) / 2 -
+            ((lines.length - 1) * 3) / 2 +
+            2;
+          lines.forEach((line: string, li: number) => {
+            doc.text(line, x + w / 2, textY + li * 3.5, { align: "center" });
+          });
+        }
       });
-      currentY += 6;
 
-      // Header tabel TP
-      const tpNoW = 8;
-      const tpKodeW = 18;
-      const tpRincianW = pageW - margin * 2 - tpNoW - tpKodeW;
-      const tpHeaderH = 7;
+      // ─── GAMBAR HEADER ROW 2 (sub header: kode TP) ───
+      const row2Y = startY + headerRow1H;
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
+      pdfHeaders.forEach((header, idx) => {
+        const cat = colCategories[idx];
+        if (cat === "TP" || cat === "SLM") {
+          const x = colPositions[idx + 1];
+          const w = colWidths[idx + 1];
+          // ✅ Bersihkan \u200B dari display header
+          const dispH = (data[0][header] || header)
+            .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+            .trim();
 
-      // Header: No
-      doc.setFillColor(41, 128, 185);
-      doc.setTextColor(255, 255, 255);
-      doc.rect(margin, currentY, tpNoW, tpHeaderH, "FD");
-      doc.text("No", margin + tpNoW / 2, currentY + tpHeaderH / 2 + 2, {
-        align: "center",
+          // Warna bergantian untuk TP
+          const colors: [number, number, number][] = [
+            [255, 153, 204], // pink
+            [255, 204, 153], // orange
+            [153, 255, 153], // hijau
+            [153, 204, 255], // biru
+            [204, 153, 255], // ungu
+            [255, 255, 153], // kuning
+          ];
+          const colorIdx = idx % colors.length;
+          doc.setFillColor(...colors[colorIdx]);
+          doc.setTextColor(0, 0, 0);
+          doc.rect(x, row2Y, w, headerRow2H, "FD");
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "bold");
+
+          // Rotasi teks untuk header sempit
+          doc.text(dispH, x + w / 2, row2Y + headerRow2H - 2, {
+            align: "center",
+          });
+        }
       });
 
-      // Header: Kode TP
-      doc.setFillColor(41, 128, 185);
-      doc.setTextColor(255, 255, 255);
-      doc.rect(margin + tpNoW, currentY, tpKodeW, tpHeaderH, "FD");
-      doc.text(
-        "TP",
-        margin + tpNoW + tpKodeW / 2,
-        currentY + tpHeaderH / 2 + 2,
-        { align: "center" }
+      // ─── GAMBAR GARIS BORDER HEADER ───
+      doc.setDrawColor(100, 100, 100);
+      doc.setLineWidth(0.3);
+
+      const lastX = computedLastX;
+
+      // Garis horizontal luar
+      doc.line(margin, startY, lastX, startY);
+      doc.line(
+        margin,
+        startY + headerRow1H + headerRow2H,
+        lastX,
+        startY + headerRow1H + headerRow2H
       );
 
-      // Header: Rincian TP
-      doc.setFillColor(41, 128, 185);
-      doc.setTextColor(255, 255, 255);
-      doc.rect(margin + tpNoW + tpKodeW, currentY, tpRincianW, tpHeaderH, "FD");
-      doc.text(
-        "Rincian Tujuan Pembelajaran",
-        margin + tpNoW + tpKodeW + tpRincianW / 2,
-        currentY + tpHeaderH / 2 + 2,
-        { align: "center" }
+      // Garis horizontal tengah (pemisah row1 dan row2)
+      // Hanya digambar di area yang BUKAN merged (bukan area TP dan SLM di row1,
+      // dan bukan area No/Nama yang rowspan 2)
+      // Kita gambar per segmen:
+      pdfHeaders.forEach((header, idx) => {
+        const cat = colCategories[idx];
+        const x = colPositions[idx + 1];
+        const w = colWidths[idx + 1];
+        // Garis tengah hanya untuk kolom TP dan SLM (karena kolom OTHER & No & Nama = rowspan 2)
+        if (cat === "TP" || cat === "SLM") {
+          doc.line(x, startY + headerRow1H, x + w, startY + headerRow1H);
+        }
+      });
+      // Garis tengah untuk area No dan Nama tidak digambar (rowspan)
+
+      // Garis vertikal - digambar per baris header agar tidak menembus merge
+      // Baris header 1 (startY sampai startY + headerRow1H):
+      // Gambar garis vertikal hanya di batas antar GROUP dan di tepi No/Nama
+
+      // Kiri luar
+      doc.line(margin, startY, margin, startY + headerRow1H + headerRow2H);
+      // Kanan luar
+      doc.line(lastX, startY, lastX, startY + headerRow1H + headerRow2H);
+
+      // Garis kanan kolom No (full height karena rowspan)
+      const noRightX = margin + noColW;
+      doc.line(noRightX, startY, noRightX, startY + headerRow1H + headerRow2H);
+
+      // Garis kanan kolom Nama (full height karena rowspan)
+      const namaRightX = colPositions[1] + namaColW;
+      doc.line(
+        namaRightX,
+        startY,
+        namaRightX,
+        startY + headerRow1H + headerRow2H
       );
 
-      currentY += tpHeaderH;
+      // Garis kanan grup TP (full height)
+      if (tpCount > 0) {
+        doc.line(
+          tpStartX + tpTotalW,
+          startY,
+          tpStartX + tpTotalW,
+          startY + headerRow1H + headerRow2H
+        );
+        // Garis kiri grup TP (full height)
+        doc.line(
+          tpStartX,
+          startY,
+          tpStartX,
+          startY + headerRow1H + headerRow2H
+        );
+      }
 
-      // Body tabel TP
+      // Garis kanan grup SLM (full height)
+      if (slmCount > 0) {
+        doc.line(
+          slmStartX + slmTotalW,
+          startY,
+          slmStartX + slmTotalW,
+          startY + headerRow1H + headerRow2H
+        );
+      }
+
+      // Garis vertikal antar kolom DALAM grup TP - hanya di baris row2
+      pdfHeaders.forEach((header, idx) => {
+        const cat = colCategories[idx];
+        if (cat === "TP") {
+          const x = colPositions[idx + 1];
+          // Jangan gambar garis kiri paling awal grup (sudah digambar di atas)
+          if (x > tpStartX) {
+            doc.line(
+              x,
+              startY + headerRow1H,
+              x,
+              startY + headerRow1H + headerRow2H
+            );
+          }
+        }
+        if (cat === "SLM") {
+          const x = colPositions[idx + 1];
+          if (x > slmStartX) {
+            doc.line(
+              x,
+              startY + headerRow1H,
+              x,
+              startY + headerRow1H + headerRow2H
+            );
+          }
+        }
+      });
+
+      // Garis vertikal kolom OTHER - full height (karena rowspan 2)
+      pdfHeaders.forEach((header, idx) => {
+        const cat = colCategories[idx];
+        if (cat === "OTHER") {
+          const x = colPositions[idx + 1];
+          doc.line(x, startY, x, startY + headerRow1H + headerRow2H);
+          const xRight = x + colWidths[idx + 1];
+          doc.line(xRight, startY, xRight, startY + headerRow1H + headerRow2H);
+        }
+      });
+
+      // ─── GAMBAR BODY DATA ───
       doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
 
-      tpTableData.forEach((tpItem, idx) => {
-        // Hitung tinggi baris berdasarkan panjang teks rincian
-        const rincianLines = doc.splitTextToSize(
-          String(tpItem.rincian),
-          tpRincianW - 3
-        );
-        const rowH = Math.max(7, rincianLines.length * 4 + 3);
+      const bodyStartY = startY + headerRow1H + headerRow2H;
+      let currentY = bodyStartY;
 
-        // Cek halaman baru
-        if (currentY + rowH > 210 - margin) {
+      actualData.forEach((row, rowIndex) => {
+        // Cek apakah perlu halaman baru
+        if (currentY + bodyRowH > 210 - margin) {
           doc.addPage();
           currentY = margin;
         }
 
         const bgColor: [number, number, number] =
-          idx % 2 === 0 ? [240, 248, 255] : [255, 255, 255];
+          rowIndex % 2 === 0 ? [224, 255, 255] : [255, 255, 255];
+
+        // Gambar background baris
         doc.setFillColor(...bgColor);
-
-        // Background
-        doc.rect(margin, currentY, pageW - margin * 2, rowH, "F");
-
-        // Border
-        doc.rect(margin, currentY, tpNoW, rowH, "S");
-        doc.rect(margin + tpNoW, currentY, tpKodeW, rowH, "S");
-        doc.rect(margin + tpNoW + tpKodeW, currentY, tpRincianW, rowH, "S");
-
-        const textY = currentY + rowH / 2 + 1.5;
+        doc.rect(margin, currentY, lastX - margin, bodyRowH, "F");
 
         // No
-        doc.text(String(idx + 1), margin + tpNoW / 2, textY, {
-          align: "center",
+        doc.text(
+          String(rowIndex + 1),
+          margin + noColW / 2,
+          currentY + bodyRowH / 2 + doc.getFontSize() / 6,
+          { align: "center" }
+        );
+
+        // Data kolom
+        pdfHeaders.forEach((header, idx) => {
+          const x = colPositions[idx + 1];
+          const w = colWidths[idx + 1];
+          const value =
+            row[header] !== undefined && row[header] !== null
+              ? String(row[header])
+              : "";
+          const isNama = header === "Data4";
+
+          doc.text(
+            value,
+            isNama ? x + 1 : x + w / 2,
+            currentY + bodyRowH / 2 + doc.getFontSize() / 6,
+            { align: isNama ? "left" : "center", maxWidth: w - 1 }
+          );
         });
 
-        // Kode TP
-        doc.setFont("helvetica", "bold");
-        doc.text(String(tpItem.tp), margin + tpNoW + tpKodeW / 2, textY, {
-          align: "center",
-        });
-        doc.setFont("helvetica", "normal");
+        // Garis horizontal baris
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineWidth(0.2);
+        doc.line(margin, currentY + bodyRowH, lastX, currentY + bodyRowH);
 
-        // Rincian TP (multi-line)
-        const rincianX = margin + tpNoW + tpKodeW + 2;
-        const rincianStartY = currentY + 4;
-        rincianLines.forEach((line: string, lineIdx: number) => {
-          doc.text(line, rincianX, rincianStartY + lineIdx * 4);
+        // Garis vertikal
+        colPositions.forEach((x) => {
+          doc.line(x, currentY, x, currentY + bodyRowH);
         });
+        doc.line(lastX, currentY, lastX, currentY + bodyRowH);
 
-        currentY += rowH;
+        currentY += bodyRowH;
       });
-    }
 
-    // ─── TANDA TANGAN ───
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+      // ─── FOOTER ───
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Total siswa: ${actualData.length}`, margin, currentY + 5);
 
-    const ttdY = currentY + 12;
-    const kepsekX = margin;
-    const guruX = pageW - margin - 50;
-
-    // Tanggal (di atas kolom guru)
-    const tanggalRapor = actualData[0]?.Data_tanggal || "";
-    doc.text(
-      `${
-        schoolData?.tanggalRapor ? `Bungeng, ${schoolData.tanggalRapor}` : ""
-      }`,
-      guruX,
-      ttdY
-    );
-
-    // Label jabatan
-    doc.text("Kepala Sekolah,", kepsekX, ttdY + 5);
-    doc.text("Guru Kelas,", guruX, ttdY + 5);
-
-    // TTD Kepsek
-    if (schoolData?.ttdKepsek) {
+      // ─── FETCH DATA TP DARI SERVER ───
+      let tpTableData: { tp: string; rincian: string; bab: string }[] = [];
       try {
-        doc.addImage(schoolData.ttdKepsek, "PNG", kepsekX, ttdY + 7, 30, 15);
+        const mapelName = actualData[0]?.Data1 || "";
+        const kelasName = actualData[0]?.Data3 || "";
+
+        const tpRes = await fetch(`${endpoint}?sheet=DataTP`);
+        if (tpRes.ok) {
+          const tpJson = await tpRes.json();
+          if (tpJson.length > 1) {
+            const tpRows = tpJson.slice(1);
+            tpTableData = tpRows
+              .filter((row: any) => {
+                const rowMapel = (row.Data1 || "").trim();
+                const rowKelas = String(row.Data6 || "").trim();
+                return (
+                  rowMapel.toLowerCase() === mapelName.toLowerCase() &&
+                  rowKelas === kelasName
+                );
+              })
+              .map((row: any) => ({
+                tp: String(row.Data2 || ""),
+                rincian: String(row.Data3 || ""),
+                bab: String(row.Data4 || ""),
+              }))
+              .filter((item: any) => item.tp && item.rincian);
+          }
+        }
       } catch (e) {
-        console.warn("Gagal load TTD Kepsek:", e);
+        console.warn("Gagal fetch DataTP:", e);
       }
-    }
 
-    // TTD Guru
-    if (schoolData?.ttdGuru) {
-      try {
-        doc.addImage(schoolData.ttdGuru, "PNG", guruX, ttdY + 7, 30, 15);
-      } catch (e) {
-        console.warn("Gagal load TTD Guru:", e);
+      // ─── TABEL DAFTAR TP ───
+      if (tpTableData.length > 0) {
+        // Cek apakah perlu halaman baru
+        const tpTableHeight = 10 + tpTableData.length * 12 + 10; // estimasi tinggi
+        if (currentY + tpTableHeight + 20 > 210 - margin) {
+          doc.addPage();
+          currentY = margin + 5;
+        } else {
+          currentY += 8;
+        }
+
+        // Judul tabel TP
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text("DAFTAR TUJUAN PEMBELAJARAN (TP)", pageW / 2, currentY, {
+          align: "center",
+        });
+        currentY += 6;
+
+        // Header tabel TP
+        const tpNoW = 8;
+        const tpKodeW = 18;
+        const tpRincianW = pageW - margin * 2 - tpNoW - tpKodeW;
+        const tpHeaderH = 7;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+
+        // Header: No
+        doc.setFillColor(41, 128, 185);
+        doc.setTextColor(255, 255, 255);
+        doc.rect(margin, currentY, tpNoW, tpHeaderH, "FD");
+        doc.text("No", margin + tpNoW / 2, currentY + tpHeaderH / 2 + 2, {
+          align: "center",
+        });
+
+        // Header: Kode TP
+        doc.setFillColor(41, 128, 185);
+        doc.setTextColor(255, 255, 255);
+        doc.rect(margin + tpNoW, currentY, tpKodeW, tpHeaderH, "FD");
+        doc.text(
+          "TP",
+          margin + tpNoW + tpKodeW / 2,
+          currentY + tpHeaderH / 2 + 2,
+          { align: "center" }
+        );
+
+        // Header: Rincian TP
+        doc.setFillColor(41, 128, 185);
+        doc.setTextColor(255, 255, 255);
+        doc.rect(
+          margin + tpNoW + tpKodeW,
+          currentY,
+          tpRincianW,
+          tpHeaderH,
+          "FD"
+        );
+        doc.text(
+          "Rincian Tujuan Pembelajaran",
+          margin + tpNoW + tpKodeW + tpRincianW / 2,
+          currentY + tpHeaderH / 2 + 2,
+          { align: "center" }
+        );
+
+        currentY += tpHeaderH;
+
+        // Body tabel TP
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+
+        tpTableData.forEach((tpItem, idx) => {
+          // Hitung tinggi baris berdasarkan panjang teks rincian
+          const rincianLines = doc.splitTextToSize(
+            String(tpItem.rincian),
+            tpRincianW - 3
+          );
+          const rowH = Math.max(7, rincianLines.length * 4 + 3);
+
+          // Cek halaman baru
+          if (currentY + rowH > 210 - margin) {
+            doc.addPage();
+            currentY = margin;
+          }
+
+          const bgColor: [number, number, number] =
+            idx % 2 === 0 ? [240, 248, 255] : [255, 255, 255];
+          doc.setFillColor(...bgColor);
+
+          // Background
+          doc.rect(margin, currentY, pageW - margin * 2, rowH, "F");
+
+          // Border
+          doc.rect(margin, currentY, tpNoW, rowH, "S");
+          doc.rect(margin + tpNoW, currentY, tpKodeW, rowH, "S");
+          doc.rect(margin + tpNoW + tpKodeW, currentY, tpRincianW, rowH, "S");
+
+          const textY = currentY + rowH / 2 + 1.5;
+
+          // No
+          doc.text(String(idx + 1), margin + tpNoW / 2, textY, {
+            align: "center",
+          });
+
+          // Kode TP
+          doc.setFont("helvetica", "bold");
+          doc.text(String(tpItem.tp), margin + tpNoW + tpKodeW / 2, textY, {
+            align: "center",
+          });
+          doc.setFont("helvetica", "normal");
+
+          // Rincian TP (multi-line)
+          const rincianX = margin + tpNoW + tpKodeW + 2;
+          const rincianStartY = currentY + 4;
+          rincianLines.forEach((line: string, lineIdx: number) => {
+            doc.text(line, rincianX, rincianStartY + lineIdx * 4);
+          });
+
+          currentY += rowH;
+        });
       }
+
+      // ─── TANDA TANGAN ───
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+
+      const ttdY = currentY + 12;
+      const kepsekX = margin;
+      const guruX = pageW - margin - 50;
+
+      // Tanggal (di atas kolom guru)
+      const tanggalRapor = actualData[0]?.Data_tanggal || "";
+      doc.text(
+        `${
+          schoolData?.tanggalRapor ? `Bungeng, ${schoolData.tanggalRapor}` : ""
+        }`,
+        guruX,
+        ttdY
+      );
+
+      // Label jabatan
+      doc.text("Kepala Sekolah,", kepsekX, ttdY + 5);
+      doc.text("Guru Kelas,", guruX, ttdY + 5);
+
+      // TTD Kepsek
+      if (schoolData?.ttdKepsek) {
+        try {
+          doc.addImage(schoolData.ttdKepsek, "PNG", kepsekX, ttdY + 7, 30, 15);
+        } catch (e) {
+          console.warn("Gagal load TTD Kepsek:", e);
+        }
+      }
+
+      // TTD Guru
+      if (schoolData?.ttdGuru) {
+        try {
+          doc.addImage(schoolData.ttdGuru, "PNG", guruX, ttdY + 7, 30, 15);
+        } catch (e) {
+          console.warn("Gagal load TTD Guru:", e);
+        }
+      }
+
+      // Nama dan NIP
+      const namaKepsek = schoolData?.namaKepsek || "_______________";
+      const nipKepsek = schoolData?.nipKepsek || "_______________";
+      const namaGuru = schoolData?.namaGuru || "_______________";
+      const nipGuru = schoolData?.nipGuru || "_______________";
+
+      doc.setFont("helvetica", "bold");
+      doc.text(namaKepsek, kepsekX, ttdY + 25);
+      doc.setFont("helvetica", "normal");
+      doc.text(`NIP. ${nipKepsek}`, kepsekX, ttdY + 30);
+
+      doc.setFont("helvetica", "bold");
+      doc.text(namaGuru, guruX, ttdY + 25);
+      doc.setFont("helvetica", "normal");
+      doc.text(`NIP. ${nipGuru}`, guruX, ttdY + 30);
+
+      const fileName =
+        `Nilai_${mapel}_Kelas${kelas}_Sem${semester}.pdf`.replace(/\s+/g, "_");
+      setIsSaving(false);
+      setIsSaving(false);
+      doc.save(fileName);
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      alert(
+        "❌ Gagal membuat PDF: " +
+          (err instanceof Error ? err.message : "Unknown error")
+      );
+    } finally {
+      setIsSaving(false);
     }
-
-    // Nama dan NIP
-    const namaKepsek = schoolData?.namaKepsek || "_______________";
-    const nipKepsek = schoolData?.nipKepsek || "_______________";
-    const namaGuru = schoolData?.namaGuru || "_______________";
-    const nipGuru = schoolData?.nipGuru || "_______________";
-
-    doc.setFont("helvetica", "bold");
-    doc.text(namaKepsek, kepsekX, ttdY + 25);
-    doc.setFont("helvetica", "normal");
-    doc.text(`NIP. ${nipKepsek}`, kepsekX, ttdY + 30);
-
-    doc.setFont("helvetica", "bold");
-    doc.text(namaGuru, guruX, ttdY + 25);
-    doc.setFont("helvetica", "normal");
-    doc.text(`NIP. ${nipGuru}`, guruX, ttdY + 30);
-
-    const fileName = `Nilai_${mapel}_Kelas${kelas}_Sem${semester}.pdf`.replace(
-      /\s+/g,
-      "_"
-    );
-    doc.save(fileName);
   };
 
   const handleImportExcel = (
@@ -2074,6 +2111,8 @@ const InputNilai = () => {
     "Data1",
     "Data2",
     "Data3",
+    "Data20", // ← tambah ini
+    "Data21", // ← tambah ini
     "Data26",
     "Data27",
     "Data28",
@@ -2304,7 +2343,7 @@ const InputNilai = () => {
             maxWidth: "300px",
           }}
         >
-          📄 Download PDF
+          {isSaving ? "Memproses..." : "📄 Download PDF"}
         </button>
       </div>
 
@@ -8627,6 +8666,24 @@ const DataKokurikuler = () => {
         >
           <thead style={{ position: "sticky", top: 0, zIndex: 100 }}>
             <tr style={{ backgroundColor: "#f4f4f4" }}>
+              <th
+                style={{
+                  padding: "8px 4px",
+                  textAlign: "center",
+                  borderBottom: "2px solid #ddd",
+                  fontWeight: "bold",
+                  width: "40px",
+                  minWidth: "40px",
+                  position: "sticky",
+                  left: 0,
+                  backgroundColor: "#f4f4f4",
+                  zIndex: 2,
+                  boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+                  fontSize: "12px",
+                }}
+              >
+                No.
+              </th>
               {displayHeaders.map((header, index) => {
                 const currentHeader = headers[index];
                 const isNameColumn = currentHeader === "Data1";
@@ -8638,8 +8695,8 @@ const DataKokurikuler = () => {
                       textAlign: "center",
                       borderBottom: "2px solid #ddd",
                       fontWeight: "bold",
-                      width: isNameColumn ? "200px" : "120px",
-                      minWidth: isNameColumn ? "200px" : "120px",
+                      width: isNameColumn ? "100px" : "120px",
+                      minWidth: isNameColumn ? "100px" : "120px",
                       position: isNameColumn ? "sticky" : "static",
                       left: isNameColumn ? 0 : "auto",
                       backgroundColor: "#f4f4f4",
@@ -8664,6 +8721,25 @@ const DataKokurikuler = () => {
                   backgroundColor: rowIndex % 2 === 0 ? "#fff" : "#f9f9f9",
                 }}
               >
+                <td
+                  style={{
+                    padding: "6px 4px",
+                    borderBottom: "1px solid #eee",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    color: "#666",
+                    width: "40px",
+                    minWidth: "40px",
+                    position: "sticky",
+                    left: 0,
+                    backgroundColor: rowIndex % 2 === 0 ? "#fff" : "#f9f9f9",
+                    zIndex: 1,
+                    boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+                    fontSize: "12px",
+                  }}
+                >
+                  {rowIndex + 1}
+                </td>
                 {headers.map((header, colIndex) => {
                   const isNameColumn = header === "Data1";
                   const isReadOnly = readOnlyHeaders.has(header);
@@ -10562,6 +10638,15 @@ const DataSiswa = () => {
   );
 };
 
+const getFase = (kelas: string): string => {
+  const kelasStr = String(kelas || "").replace(/[^0-9]/g, "");
+  const kelasNum = parseInt(kelasStr);
+  if (kelasNum === 1 || kelasNum === 2) return "A";
+  if (kelasNum === 3 || kelasNum === 4) return "B";
+  if (kelasNum === 5 || kelasNum === 6) return "C";
+  return "-";
+};
+
 const PreviewRaporModal: React.FC<{
   rowData: any;
   selectedSemester: string;
@@ -10573,7 +10658,24 @@ const PreviewRaporModal: React.FC<{
   const [previewData, setPreviewData] = React.useState<any>(null);
 
   const namaSiswa = rowData?.Data1 || "-";
-  const kelas = rowData?.Data2 || "-";
+  const [kelasFromSekolah, setKelasFromSekolah] = React.useState<string>("-");
+
+  React.useEffect(() => {
+    const fetchKelasFromSekolah = async () => {
+      try {
+        const cached = await idbLoad("sekolahData");
+        if (cached?.kelas) {
+          setKelasFromSekolah(String(cached.kelas).trim());
+        }
+      } catch (e) {
+        console.warn("Gagal fetch kelas dari IndexedDB sekolah:", e);
+      }
+    };
+    fetchKelasFromSekolah();
+  }, []);
+
+  const kelas =
+    kelasFromSekolah !== "-" ? kelasFromSekolah : rowData?.Data2 || "-";
   const namaOrtu = rowData?.Data5 || "-";
   const [nisn, setNisn] = React.useState("-");
 
@@ -10896,7 +10998,7 @@ const PreviewRaporModal: React.FC<{
             ["Nama Peserta Didik", namaSiswa.toUpperCase()],
             ["Kelas", kelas],
             ["NISN", nisn],
-            ["Fase", "C"],
+            ["Fase", getFase(kelas)],
             ["Nama Sekolah", schoolData?.namaSekolah || "-"],
             ["Semester", selectedSemester],
             ["Nama Orang Tua", namaOrtu],
@@ -12404,7 +12506,15 @@ const RekapNilai = () => {
       const doc = new jsPDF();
 
       const namaSiswa = rowData.Data1 || "-";
-      const kelas = rowData.Data2 || "-";
+      let kelas = rowData.Data2 || "-";
+      try {
+        const sekolahCached = await idbLoad("sekolahData");
+        if (sekolahCached?.kelas) {
+          kelas = String(sekolahCached.kelas).trim();
+        }
+      } catch (e) {
+        console.warn("Gagal fetch kelas dari sekolahData:", e);
+      }
       const namaOrtu = rowData.Data5 || "-";
 
       // Ambil NISN dari cache
@@ -12440,7 +12550,7 @@ const RekapNilai = () => {
       doc.text("NISN", leftCol, y);
       doc.text(`: ${nisn}`, leftCol + 50, y);
       doc.text("Fase", rightCol, y);
-      doc.text(": C", rightCol + 30, y);
+      doc.text(`: ${getFase(kelas)}`, rightCol + 30, y);
 
       y += 7;
       doc.text("Nama Sekolah", leftCol, y);
@@ -13991,10 +14101,15 @@ const RekapNilai = () => {
 // ✅ KOMPONEN BARU - AppContent (yang menggunakan context)
 const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { loading } = useRekapData(); // ✅ Sekarang aman karena sudah di dalam Provider
+  const { loading } = useRekapData();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate("/");
+  }, []);
 
   return (
-    <Router>
+    <div>
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
@@ -14137,7 +14252,7 @@ const AppContent = () => {
               </Link>
 
               <Link
-                to="/"
+                to="/input-nilai"
                 onClick={() => setMenuOpen(false)}
                 style={{
                   padding: "15px 20px",
@@ -14315,8 +14430,8 @@ const AppContent = () => {
         )}
 
         <Routes>
-          <Route path="/data-siswa" element={<DataSiswa />} />
-          <Route path="/" element={<InputNilai />} />
+          <Route path="/" element={<DataSiswa />} />
+          <Route path="/input-nilai" element={<InputNilai />} />
           <Route path="/kehadiran" element={<DataKehadiran />} />
           <Route path="/kokurikuler" element={<DataKokurikuler />} />
           <Route path="/ekstrakurikuler" element={<DataEkstrakurikuler />} />
@@ -14326,16 +14441,18 @@ const AppContent = () => {
           <Route path="/rekap-nilai" element={<RekapNilai />} />
         </Routes>
       </div>
-    </Router>
+    </div>
   );
 };
 
 // ✅ KOMPONEN APP YANG BARU - Hanya sebagai wrapper Provider
 const App = () => {
   return (
-    <RekapProvider>
-      <AppContent />
-    </RekapProvider>
+    <Router>
+      <RekapProvider>
+        <AppContent />
+      </RekapProvider>
+    </Router>
   );
 };
 
