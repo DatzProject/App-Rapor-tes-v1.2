@@ -1664,36 +1664,69 @@ const InputNilai = () => {
       doc.setTextColor(100, 100, 100);
       doc.text(`Total siswa: ${actualData.length}`, margin, currentY + 5);
 
-      // ─── FETCH DATA TP DARI SERVER ───
+      // ─── AMBIL DATA TP DARI INDEXEDDB ───
       let tpTableData: { tp: string; rincian: string; bab: string }[] = [];
       try {
         const mapelName = actualData[0]?.Data1 || "";
-        const kelasName = actualData[0]?.Data3 || "";
+        const kelasName = (actualData[0]?.Data3 || "").replace(/[^0-9]/g, "");
+        const semesterName = actualData[0]?.Data2 || "";
 
-        const tpRes = await fetch(`${endpoint}?sheet=DataTP`);
-        if (tpRes.ok) {
-          const tpJson = await tpRes.json();
-          if (tpJson.length > 1) {
-            const tpRows = tpJson.slice(1);
-            tpTableData = tpRows
-              .filter((row: any) => {
-                const rowMapel = (row.Data1 || "").trim();
-                const rowKelas = String(row.Data6 || "").trim();
-                return (
-                  rowMapel.toLowerCase() === mapelName.toLowerCase() &&
-                  rowKelas === kelasName
-                );
-              })
-              .map((row: any) => ({
-                tp: String(row.Data2 || ""),
-                rincian: String(row.Data3 || ""),
-                bab: String(row.Data4 || ""),
-              }))
-              .filter((item: any) => item.tp && item.rincian);
-          }
+        const tpCached = await idbLoad(STORE_TP);
+        if (tpCached && tpCached.length > 1) {
+          const tpRows = tpCached.slice(1);
+
+          // ─── DEBUG: tampilkan 3 baris pertama TP ───
+          console.log("🔎 ALL KEYS di row pertama:", Object.keys(tpRows[0]));
+          console.log("🔎 Full row pertama:", JSON.stringify(tpRows[0]));
+
+          tpTableData = tpRows
+            .filter((row: any) => {
+              const rowMapel = (row.Data1 || "")
+                .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+                .trim();
+              const rowKelas = String(row.Data6 ?? "").trim();
+              const rowSemester = String(row.Data5 ?? "").trim();
+              const semesterAngka = String(
+                parseInt(semesterName) || semesterName
+              );
+              const kelasAngka = kelasName.replace(/[^0-9]/g, "");
+              return (
+                rowMapel.toLowerCase() === mapelName.toLowerCase() &&
+                rowKelas === kelasAngka &&
+                rowSemester === semesterAngka
+              );
+            })
+            .map((row: any) => ({
+              bab: String(row.Data4 || "")
+                .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+                .trim(),
+              tp: String(row.Data2 || "")
+                .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+                .trim(),
+              rincian: String(row.Data3 || "")
+                .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+                .trim(),
+            }))
+            .filter((item: any) => item.tp && item.rincian)
+            .sort((a: any, b: any) => {
+              // Urutkan berdasarkan BAB dulu, lalu nomor TP
+              const babA = parseFloat(a.bab) || 0;
+              const babB = parseFloat(b.bab) || 0;
+              if (babA !== babB) return babA - babB;
+              const [, subA] = a.tp.split(".").map(Number);
+              const [, subB] = b.tp.split(".").map(Number);
+              return (subA || 0) - (subB || 0);
+            });
+          console.log(
+            `✅ DataTP dari IndexedDB: ${tpTableData.length} TP ditemukan untuk ${mapelName} Kelas ${kelasName} Sem ${semesterName}`
+          );
+        } else {
+          console.warn(
+            "⚠️ IndexedDB STORE_TP kosong, tabel TP tidak akan ditampilkan"
+          );
         }
       } catch (e) {
-        console.warn("Gagal fetch DataTP:", e);
+        console.warn("Gagal load DataTP dari IndexedDB:", e);
       }
 
       // ─── TABEL DAFTAR TP ───
@@ -2162,23 +2195,24 @@ const InputNilai = () => {
         style={{
           textAlign: "center",
           color: "#333",
-          marginBottom: "15px",
-          fontSize: "20px",
+          marginBottom: "8px",
+          fontSize: "16px",
+          marginTop: "8px",
         }}
       >
-        Data Editor - Multi Sheet
+        ✏️ Input Nilai
       </h1>
 
       {/* Dropdown Pilih Sheet */}
       <div
-        style={{ textAlign: "center", marginBottom: "15px", padding: "0 10px" }}
+        style={{ textAlign: "center", marginBottom: "8px", padding: "0 10px" }}
       >
         <label
           style={{
-            fontSize: "14px",
+            fontSize: "12px",
             color: "#666",
             display: "block",
-            marginBottom: "6px",
+            marginBottom: "4px",
           }}
         >
           Pilih Mapel:
@@ -2198,153 +2232,168 @@ const InputNilai = () => {
             boxSizing: "border-box",
           }}
         >
-          {availableSheets.map((sheet, index) => (
-            <option key={index} value={sheet.sheetName}>
-              {sheet.mapel} - {sheet.kelas} (Semester {sheet.semester})
-            </option>
-          ))}
+          <optgroup label="── Semester 1 ──">
+            {availableSheets
+              .filter((sheet) => sheet.semester === "1")
+              .map((sheet, index) => (
+                <option key={`s1-${index}`} value={sheet.sheetName}>
+                  {sheet.mapel} - {sheet.kelas}
+                </option>
+              ))}
+          </optgroup>
+          <optgroup label="── Semester 2 ──">
+            {availableSheets
+              .filter((sheet) => sheet.semester === "2")
+              .map((sheet, index) => (
+                <option key={`s2-${index}`} value={sheet.sheetName}>
+                  {sheet.mapel} - {sheet.kelas}
+                </option>
+              ))}
+          </optgroup>
         </select>
       </div>
 
-      {/* Info Sheet */}
+      {/* Info Sheet + Tombol dalam satu baris */}
       <div
         style={{
-          textAlign: "center",
-          marginBottom: "10px",
-          fontSize: "16px",
-          color: "#333",
-        }}
-      >
-        Mapel: {actualData[0]?.Data1 || "N/A"} | Kelas:{" "}
-        {actualData[0]?.Data3 || "N/A"} | Semester:{" "}
-        {actualData[0]?.Data2 || "N/A"}
-        {/* ✅ TAMBAH: Info jumlah siswa */}
-        <span style={{ marginLeft: "20px", color: "#666", fontSize: "14px" }}>
-          ({actualData.length} siswa)
-        </span>
-      </div>
-
-      {/* Tombol Save */}
-      <div
-        style={{
-          textAlign: "center",
-          marginBottom: "15px",
           display: "flex",
-          gap: "10px",
-          justifyContent: "center",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "10px",
+          padding: "8px 12px",
+          backgroundColor: "#f8f9fa",
+          borderRadius: "8px",
+          border: "1px solid #e0e0e0",
           flexWrap: "wrap",
+          gap: "8px",
         }}
       >
-        <button
-          onClick={handleSaveAll}
-          disabled={isSaving}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: isSaving ? "#ccc" : "#4CAF50",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: isSaving ? "not-allowed" : "pointer",
-            fontWeight: "bold",
-            fontSize: "13px",
-            maxWidth: "300px",
-          }}
-          onMouseOver={(e) =>
-            !isSaving &&
-            ((e.target as HTMLButtonElement).style.backgroundColor = "#45a049")
-          }
-          onMouseOut={(e) =>
-            !isSaving &&
-            ((e.target as HTMLButtonElement).style.backgroundColor = "#4CAF50")
-          }
-        >
-          {isSaving ? "Memproses..." : `Save All Changes (${changedRows.size})`}
-        </button>
-        <button
-          onClick={() => {
-            if (!isEditMode) {
-              // Masuk mode edit: simpan data asli
-              setOriginalData(JSON.parse(JSON.stringify(data)));
-              setIsEditMode(true);
-            } else {
-              // Batal edit: kembalikan data ke semula
-              const confirm = window.confirm(
-                "⚠️ Batal edit?\n\nSemua perubahan yang belum disimpan akan dikembalikan ke nilai sebelumnya."
-              );
-              if (!confirm) return;
-              setData(originalData);
-              setChangedRows(new Set());
-              setIsEditMode(false);
-              setShowFloatingButton(false);
-              setActiveInput(null);
-            }
-          }}
-          disabled={isSaving}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: isEditMode ? "#FF9800" : "#2196F3",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: isSaving ? "not-allowed" : "pointer",
-            fontWeight: "bold",
-            fontSize: "13px",
-            maxWidth: "300px",
-          }}
-        >
-          {isEditMode ? "❌ Batal Edit" : "✏️ Edit Nilai"}
-        </button>
-        <button
-          onClick={handleClearAllValues}
-          disabled={isSaving}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: isSaving ? "#ccc" : "#f44336",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: isSaving ? "not-allowed" : "pointer",
-            fontWeight: "bold",
-            fontSize: "13px",
-            maxWidth: "300px",
-          }}
-        >
-          {isSaving ? "Memproses..." : "🗑️ Hapus Semua Nilai"}
-        </button>
-        <button
-          onClick={() => setImportModalOpen(true)}
-          disabled={isSaving}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: isSaving ? "#ccc" : "#9C27B0",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: isSaving ? "not-allowed" : "pointer",
-            fontWeight: "bold",
-            fontSize: "13px",
-            maxWidth: "300px",
-          }}
-        >
-          📥 Import Excel
-        </button>
-        <button
-          onClick={handleDownloadPDF}
-          disabled={isSaving}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: isSaving ? "#ccc" : "#FF5722",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: isSaving ? "not-allowed" : "pointer",
-            fontWeight: "bold",
-            fontSize: "13px",
-            maxWidth: "300px",
-          }}
-        >
-          {isSaving ? "Memproses..." : "📄 Download PDF"}
-        </button>
+        {/* Info kiri */}
+        <div style={{ fontSize: "13px", color: "#333", fontWeight: "500" }}>
+          <span style={{ color: "#1565c0", fontWeight: "bold" }}>
+            {actualData[0]?.Data1 || "N/A"}
+          </span>
+          <span style={{ color: "#666", margin: "0 6px" }}>|</span>
+          <span>
+            Kelas: <strong>{actualData[0]?.Data3 || "N/A"}</strong>
+          </span>
+          <span style={{ color: "#666", margin: "0 6px" }}>|</span>
+          <span>
+            Sem: <strong>{actualData[0]?.Data2 || "N/A"}</strong>
+          </span>
+          <span
+            style={{
+              marginLeft: "8px",
+              backgroundColor: "#e3f2fd",
+              color: "#1565c0",
+              padding: "2px 8px",
+              borderRadius: "12px",
+              fontSize: "12px",
+              fontWeight: "bold",
+            }}
+          >
+            {actualData.length} siswa
+          </span>
+        </div>
+
+        {/* Tombol kanan */}
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          <button
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: isSaving ? "#ccc" : "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: isSaving ? "not-allowed" : "pointer",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+          >
+            💾 Simpan ({changedRows.size})
+          </button>
+          <button
+            onClick={() => {
+              if (!isEditMode) {
+                setOriginalData(JSON.parse(JSON.stringify(data)));
+                setIsEditMode(true);
+              } else {
+                const confirm = window.confirm(
+                  "⚠️ Batal edit?\n\nSemua perubahan yang belum disimpan akan dikembalikan ke nilai sebelumnya."
+                );
+                if (!confirm) return;
+                setData(originalData);
+                setChangedRows(new Set());
+                setIsEditMode(false);
+                setShowFloatingButton(false);
+                setActiveInput(null);
+              }
+            }}
+            disabled={isSaving}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: isEditMode ? "#FF9800" : "#2196F3",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: isSaving ? "not-allowed" : "pointer",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+          >
+            {isEditMode ? "❌ Batal" : "✏️ Edit"}
+          </button>
+          <button
+            onClick={handleClearAllValues}
+            disabled={isSaving}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: isSaving ? "#ccc" : "#f44336",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: isSaving ? "not-allowed" : "pointer",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+          >
+            🗑️ Hapus
+          </button>
+          <button
+            onClick={() => setImportModalOpen(true)}
+            disabled={isSaving}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: isSaving ? "#ccc" : "#9C27B0",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: isSaving ? "not-allowed" : "pointer",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+          >
+            📥 Import
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isSaving}
+            style={{
+              padding: "6px 12px",
+              backgroundColor: isSaving ? "#ccc" : "#FF5722",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: isSaving ? "not-allowed" : "pointer",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+          >
+            📄 PDF
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -10665,7 +10714,13 @@ const PreviewRaporModal: React.FC<{
       try {
         const cached = await idbLoad("sekolahData");
         if (cached?.kelas) {
-          setKelasFromSekolah(String(cached.kelas).trim());
+          const kelasVal = String(cached.kelas).trim();
+          const rombelVal = String(cached.rombel || "").trim();
+          setKelasFromSekolah(
+            rombelVal && rombelVal !== "-"
+              ? `${kelasVal}${rombelVal}`
+              : kelasVal
+          );
         }
       } catch (e) {
         console.warn("Gagal fetch kelas dari IndexedDB sekolah:", e);
@@ -12536,7 +12591,12 @@ const RekapNilai = () => {
       try {
         const sekolahCached = await idbLoad("sekolahData");
         if (sekolahCached?.kelas) {
-          kelas = String(sekolahCached.kelas).trim();
+          const kelasVal = String(sekolahCached.kelas).trim();
+          const rombelVal = String(sekolahCached.rombel || "").trim();
+          kelas =
+            rombelVal && rombelVal !== "-"
+              ? `${kelasVal}${rombelVal}`
+              : kelasVal;
         }
       } catch (e) {
         console.warn("Gagal fetch kelas dari sekolahData:", e);
