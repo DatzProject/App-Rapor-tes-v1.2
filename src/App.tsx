@@ -2209,10 +2209,10 @@ const InputNilai = () => {
       >
         <label
           style={{
-            fontSize: "12px",
+            fontSize: "11px",
             color: "#666",
             display: "block",
-            marginBottom: "4px",
+            marginBottom: "2px",
           }}
         >
           Pilih Mapel:
@@ -2221,8 +2221,8 @@ const InputNilai = () => {
           value={selectedSheet}
           onChange={(e) => handleSheetChange(e.target.value)}
           style={{
-            padding: "10px 15px",
-            fontSize: "14px",
+            padding: "10px 8px",
+            fontSize: "13px", // lebih kecil agar muat
             borderRadius: "4px",
             border: "1px solid #ddd",
             width: "100%",
@@ -2230,6 +2230,12 @@ const InputNilai = () => {
             cursor: "pointer",
             backgroundColor: "white",
             boxSizing: "border-box",
+            WebkitAppearance: "none", // hilangkan style default iOS
+            appearance: "none",
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 10px center",
+            paddingRight: "30px",
           }}
         >
           <optgroup label="── Semester 1 ──">
@@ -2237,7 +2243,10 @@ const InputNilai = () => {
               .filter((sheet) => sheet.semester === "1")
               .map((sheet, index) => (
                 <option key={`s1-${index}`} value={sheet.sheetName}>
-                  {sheet.mapel} - {sheet.kelas}
+                  {sheet.mapel.length > 15
+                    ? sheet.mapel.substring(0, 15) + "…"
+                    : sheet.mapel}{" "}
+                  · {sheet.kelas}
                 </option>
               ))}
           </optgroup>
@@ -2246,7 +2255,10 @@ const InputNilai = () => {
               .filter((sheet) => sheet.semester === "2")
               .map((sheet, index) => (
                 <option key={`s2-${index}`} value={sheet.sheetName}>
-                  {sheet.mapel} - {sheet.kelas}
+                  {sheet.mapel.length > 15
+                    ? sheet.mapel.substring(0, 15) + "…"
+                    : sheet.mapel}{" "}
+                  · {sheet.kelas}
                 </option>
               ))}
           </optgroup>
