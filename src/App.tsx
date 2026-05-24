@@ -11787,7 +11787,16 @@ const RekapNilai = () => {
           ? `Rekap_Nilai_Semua_Kelas_Sem${selectedSemester}.xlsx`
           : `Rekap_Nilai_Kelas${selectedKelas}_Sem${selectedSemester}.xlsx`;
 
-      XLSX.writeFile(workbook, fileName);
+      const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([wbout], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch (err) {
       alert(
         "❌ Gagal membuat Excel: " +
@@ -12461,10 +12470,10 @@ const RekapNilai = () => {
 
   const getSchoolData = () => localSchoolData || schoolData;
 
-  const downloadSampulPDF = (rowData: any) => {
+  const downloadSampulPDF = async (rowData: any) => {
     const namaSiswa = rowData.Data1 || "-";
-    const nisn = rowData.Data3 || "-";
-    const nis = rowData.Data4 || "-";
+    const nisn = rowData.Data4 || "-";
+    const nis = rowData.Data3 || "-";
 
     const doc = new jsPDF({
       orientation: "portrait",
@@ -12474,7 +12483,7 @@ const RekapNilai = () => {
 
     const pageW = 210;
     const pageH = 297;
-    const margin = 15;
+    const margin = 20;
 
     // ─── BORDER LUAR (garis tebal) ───
     doc.setDrawColor(0);
@@ -12492,8 +12501,26 @@ const RekapNilai = () => {
 
     const centerX = pageW / 2;
 
-    // ─── JUDUL RAPOR ───
-    let y = margin + 55;
+    // ─── MUAT LOGO TUT WURI ───
+    try {
+      const response = await fetch("/logo-tutwurih.png");
+      const blob = await response.blob();
+      const logoBase64: string = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+
+      const logoSize = 40;
+      const logoX = centerX - logoSize / 2;
+      const logoY = margin + 12;
+      doc.addImage(logoBase64, "PNG", logoX, logoY, logoSize, logoSize);
+    } catch (e) {
+      console.warn("Gagal load logo Tut Wuri:", e);
+    }
+
+    // ─── JUDUL RAPOR (di bawah logo) ───
+    let y = margin + 65;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
@@ -12501,7 +12528,6 @@ const RekapNilai = () => {
 
     y += 10;
     doc.setFontSize(18);
-    // Spasi antar huruf manual untuk efek "P E S E R T A  D I D I K"
     doc.text("P E S E R T A   D I D I K", centerX, y, { align: "center" });
 
     y += 9;
@@ -12511,16 +12537,21 @@ const RekapNilai = () => {
     y += 9;
     doc.text("(SD)", centerX, y, { align: "center" });
 
-    // ─── NAMA SEKOLAH (kecil, di bawah SD) ───
+    // ─── NAMA SEKOLAH ───
     y += 8;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
     doc.text(getSchoolData()?.namaSekolah || "", centerX, y, {
       align: "center",
     });
 
+    // ─── GARIS PEMISAH ───
+    y += 10;
+    doc.setLineWidth(0.5);
+    doc.line(margin + 10, y, pageW - margin - 10, y);
+
     // ─── SPACER ───
-    y += 30;
+    y += 25;
 
     // ─── LABEL "Nama Peserta Didik :" ───
     doc.setFont("helvetica", "normal");
@@ -12528,40 +12559,50 @@ const RekapNilai = () => {
     doc.text("Nama Peserta Didik :", centerX, y, { align: "center" });
 
     // ─── KOTAK NAMA SISWA ───
-    y += 6;
-    const boxW = 100;
+    y += 7;
+    const boxW = 120;
     const boxX = centerX - boxW / 2;
     doc.setLineWidth(0.5);
-    doc.rect(boxX, y, boxW, 10);
+    doc.rect(boxX, y, boxW, 12);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(namaSiswa.toUpperCase(), centerX, y + 7, { align: "center" });
+    doc.setFontSize(13);
+    doc.text(namaSiswa.toUpperCase(), centerX, y + 8.5, { align: "center" });
 
     // ─── LABEL "NISN/NIS" ───
-    y += 16;
+    y += 20;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.text("NISN/NIS", centerX, y, { align: "center" });
 
     // ─── KOTAK NISN/NIS ───
-    y += 6;
+    y += 7;
     doc.setLineWidth(0.5);
-    doc.rect(boxX, y, boxW, 10);
+    doc.rect(boxX, y, boxW, 12);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.text(`${nisn}/${nis}`, centerX, y + 7, { align: "center" });
+    doc.setFontSize(13);
+    const nisnClean = String(nisn)
+      .replace(/[\u200B\u200C\u200D\uFEFF\s]/g, "")
+      .trim();
+    const nisClean = String(nis)
+      .replace(/[\u200B\u200C\u200D\uFEFF\s]/g, "")
+      .trim();
+    const nisnNisText = `${nisnClean} / ${nisClean}`;
+    doc.text(nisnNisText, centerX, y + 8.5, { align: "center" });
+
+    // ─── GARIS PEMISAH FOOTER ───
+    const footerY = pageH - margin - 30;
+    doc.setLineWidth(0.5);
+    doc.line(margin + 10, footerY, pageW - margin - 10, footerY);
 
     // ─── FOOTER ───
-    y = pageH - margin - 20;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
-    doc.text("K E M E N D I K B U D   R I S T E K", centerX, y, {
+    doc.text("K E M E N D I K D A S M E N", centerX, footerY + 10, {
       align: "center",
     });
 
-    y += 8;
     doc.setFontSize(12);
-    doc.text("REPUBLIK INDONESIA", centerX, y, { align: "center" });
+    doc.text("REPUBLIK INDONESIA", centerX, footerY + 19, { align: "center" });
 
     const fileName = `Sampul_${namaSiswa.replace(/\s+/g, "_")}.pdf`;
     doc.save(fileName);
@@ -13674,9 +13715,9 @@ const RekapNilai = () => {
                       {downloadingId === row.Data1 ? "⏳" : "📄 PDF"}
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setDownloadingSampulId(row.Data1);
-                        downloadSampulPDF(row);
+                        await downloadSampulPDF(row);
                         setDownloadingSampulId(null);
                       }}
                       disabled={downloadingSampulId === row.Data1}
