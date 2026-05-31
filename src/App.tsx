@@ -58,7 +58,7 @@ interface KehadiranData {
 }
 
 const endpoint =
-  "https://script.google.com/macros/s/AKfycbzT83aql_Ybq-YLHDVFEk1lYj56cf8YrP89HxvpCEkpt9rdLJz7gZDAAe38zTBR7-Lh/exec";
+  "https://script.google.com/macros/s/AKfycbyz8wReZj9L0LotnGHovdRjg_DGsr3dawYJtp4IgBIrpoplcr0q2H4vnVPtgsZUVUF7/exec";
 
 const throttle = (func: Function, delay: number) => {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -1023,9 +1023,20 @@ const InputNilai = () => {
   const fetchTPDetails = async (
     tpCode: string,
     mapel: string,
-    rowIndex: number
+    rowIndex: number,
+    kelas: string = "",
+    semester: string = ""
   ) => {
-    console.log("Fetching TP:", tpCode, "for Mapel:", mapel);
+    console.log(
+      "Fetching TP:",
+      tpCode,
+      "Mapel:",
+      mapel,
+      "Kelas:",
+      kelas,
+      "Semester:",
+      semester
+    );
 
     setLoadingTP(true);
     setShowTPPopup(true);
@@ -1034,7 +1045,9 @@ const InputNilai = () => {
     try {
       const url = `${endpoint}?sheet=DataTP&tp=${encodeURIComponent(
         tpCode
-      )}&mapel=${encodeURIComponent(mapel)}`;
+      )}&mapel=${encodeURIComponent(mapel)}&kelas=${encodeURIComponent(
+        kelas
+      )}&semester=${encodeURIComponent(semester)}`;
       console.log("Request URL:", url);
 
       const response = await fetch(url);
@@ -2493,7 +2506,10 @@ const InputNilai = () => {
                         const tpCode =
                           displayHeaders[headers.indexOf(currentHeader)];
                         const mapel = actualData[0]?.Data1 || "";
-                        fetchTPDetails(tpCode, mapel, 0);
+                        const kelasRaw = actualData[0]?.Data3 || "";
+                        const kelas = kelasRaw.replace(/[^0-9]/g, ""); // ← strip huruf rombel
+                        const semester = actualData[0]?.Data2 || "";
+                        fetchTPDetails(tpCode, mapel, 0, kelas, semester);
                       }
                     }}
                     style={{
