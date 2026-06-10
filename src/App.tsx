@@ -4794,13 +4794,12 @@ const DataKehadiran = () => {
         }
 
         const keys = Object.keys(jsonData[0]);
+
+        // Deteksi kolom berdasarkan nama kolom file Pengurangan Kehadiran
         const namaKey = keys.find((k) => k.toLowerCase() === "nama");
-        const hadirKey = keys.find((k) => k.toLowerCase() === "hadir");
-        const alphaKey = keys.find(
-          (k) => k.toLowerCase() === "alpha" || k.toLowerCase() === "alpa"
-        );
-        const izinKey = keys.find((k) => k.toLowerCase() === "izin");
-        const sakitKey = keys.find((k) => k.toLowerCase() === "sakit");
+        const alphaKey = keys.find((k) => k.toLowerCase().includes("alpha"));
+        const izinKey = keys.find((k) => k.toLowerCase().includes("izin"));
+        const sakitKey = keys.find((k) => k.toLowerCase().includes("sakit"));
 
         if (!namaKey) {
           alert(
@@ -4811,7 +4810,8 @@ const DataKehadiran = () => {
           return;
         }
 
-        // Buat map dari Excel
+        // Buat map dari Excel: nama → { alpha, izin, sakit }
+        // Hadir dikosongkan karena tidak ada di file Excel
         const excelMap: {
           [nama: string]: {
             hadir: string;
@@ -4820,23 +4820,25 @@ const DataKehadiran = () => {
             sakit: string;
           };
         } = {};
+
         jsonData.forEach((row) => {
           const nama = String(row[namaKey] || "").trim();
           if (
             nama &&
             nama.toLowerCase() !== "total" &&
-            nama.toLowerCase() !== "persen"
+            nama.toLowerCase() !== "persen" &&
+            isNaN(Number(nama)) // skip baris yang isinya angka (misal footer)
           ) {
             excelMap[nama] = {
-              hadir: hadirKey ? String(row[hadirKey] || "") : "",
-              alpha: alphaKey ? String(row[alphaKey] || "") : "",
-              izin: izinKey ? String(row[izinKey] || "") : "",
-              sakit: sakitKey ? String(row[sakitKey] || "") : "",
+              hadir: "", // dikosongkan, tidak ada di file Excel
+              alpha: alphaKey ? String(row[alphaKey] ?? "") : "",
+              izin: izinKey ? String(row[izinKey] ?? "") : "",
+              sakit: sakitKey ? String(row[sakitKey] ?? "") : "",
             };
           }
         });
 
-        // Buat preview data
+        // Cocokkan dengan data siswa di aplikasi
         const matchedPreview: {
           nama: string;
           hadir: string;
@@ -4866,7 +4868,6 @@ const DataKehadiran = () => {
           }
         });
 
-        // Tampilkan preview, belum apply ke data
         setImportPreview({ matched: matchedPreview, notFound, pendingData });
       } catch (err) {
         alert(
