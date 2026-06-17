@@ -12011,7 +12011,7 @@ const RekapNilai = () => {
 
       let isFirstPage = true;
 
-      Object.entries(groupedByKelas).forEach(async ([kelas, rows]) => {
+      for (const [kelas, rows] of Object.entries(groupedByKelas)) {
         if (!isFirstPage) {
           doc.addPage();
         }
@@ -12455,7 +12455,7 @@ const RekapNilai = () => {
         doc.line(guruX, ttdStartY + 26, guruX + guruTextW, ttdStartY + 26);
         doc.setFont("helvetica", "normal");
         doc.text(`NIP. ${nipGuru}`, guruX, ttdStartY + 30);
-      });
+      }
 
       // Nomor halaman
       const totalPages = doc.getNumberOfPages();
