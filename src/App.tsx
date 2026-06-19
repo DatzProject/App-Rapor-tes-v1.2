@@ -665,6 +665,8 @@ const InputNilai = () => {
   const [originalData, setOriginalData] = useState<RowData[]>([]);
   // ✅ TAMBAH: Menyimpan mapping row index asli (di sheet) vs row index yang terfilter (di UI)
   const [rowMapping, setRowMapping] = useState<number[]>([]);
+  const [sortColumn, setSortColumn] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const loadSheetData = async (sheetName: string) => {
     setLoading(true);
@@ -2184,6 +2186,34 @@ const InputNilai = () => {
 
   const actualData = data.slice(1);
 
+  // Kolom yang bisa dijadikan acuan sortir: Nama + kolom readonly (NILAI_RAPOR, RANKING, dst)
+  const sortableHeaders = visibleHeaders.filter(
+    (h) => h === "Data4" || readOnlyHeaders.has(h)
+  );
+
+  const sortedRows = (() => {
+    const indexed = actualData.map((row, idx) => ({ row, rowIndex: idx }));
+
+    if (!sortColumn) return indexed;
+
+    return [...indexed].sort((a, b) => {
+      const valA = String(a.row[sortColumn] ?? "").trim();
+      const valB = String(b.row[sortColumn] ?? "").trim();
+
+      const numA = parseFloat(valA.replace(",", "."));
+      const numB = parseFloat(valB.replace(",", "."));
+
+      let cmp: number;
+      if (!isNaN(numA) && !isNaN(numB) && valA !== "" && valB !== "") {
+        cmp = numA - numB;
+      } else {
+        cmp = valA.localeCompare(valB, "id", { numeric: true });
+      }
+
+      return sortOrder === "asc" ? cmp : -cmp;
+    });
+  })();
+
   const getColumnWidth = (header: string): string => {
     if (header === "Data4") return "120px";
     if (header === "Data20") return "120px";
@@ -2322,7 +2352,50 @@ const InputNilai = () => {
         </div>
 
         {/* Tombol kanan */}
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "6px",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <select
+            value={sortColumn}
+            onChange={(e) => setSortColumn(e.target.value)}
+            style={{
+              fontSize: "12px",
+              padding: "6px 8px",
+              borderRadius: "4px",
+              border: "1px solid #ddd",
+              backgroundColor: "white",
+            }}
+          >
+            <option value="">↕️ Tanpa urutan</option>
+            {sortableHeaders.map((h) => (
+              <option key={h} value={h}>
+                Urutkan: {data[0][h] || h}
+              </option>
+            ))}
+          </select>
+          {sortColumn && (
+            <button
+              onClick={() =>
+                setSortOrder((o) => (o === "asc" ? "desc" : "asc"))
+              }
+              style={{
+                padding: "6px 10px",
+                fontSize: "12px",
+                borderRadius: "4px",
+                border: "1px solid #ddd",
+                cursor: "pointer",
+                backgroundColor: "white",
+                fontWeight: "bold",
+              }}
+            >
+              {sortOrder === "asc" ? "🔼 Kecil→Besar" : "🔽 Besar→Kecil"}
+            </button>
+          )}
           <button
             onClick={handleSaveAll}
             disabled={isSaving}
@@ -2565,11 +2638,11 @@ const InputNilai = () => {
             </tr>
           </thead>
           <tbody>
-            {actualData.map((row, rowIndex) => (
+            {sortedRows.map(({ row, rowIndex }, displayIndex) => (
               <tr
                 key={rowIndex}
                 style={{
-                  backgroundColor: rowIndex % 2 === 0 ? "#fff" : "#f9f9f9",
+                  backgroundColor: displayIndex % 2 === 0 ? "#fff" : "#f9f9f9",
                 }}
               >
                 <td
@@ -2583,13 +2656,14 @@ const InputNilai = () => {
                     minWidth: "35px",
                     position: "sticky",
                     left: 0,
-                    backgroundColor: rowIndex % 2 === 0 ? "#fff" : "#f9f9f9",
+                    backgroundColor:
+                      displayIndex % 2 === 0 ? "#fff" : "#f9f9f9",
                     zIndex: 2,
                     boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
                     fontSize: "12px",
                   }}
                 >
-                  {rowIndex + 1}
+                  {displayIndex + 1}
                 </td>
                 <td
                   style={{
@@ -2600,7 +2674,8 @@ const InputNilai = () => {
                     minWidth: "45px",
                     position: "sticky",
                     left: "35px",
-                    backgroundColor: rowIndex % 2 === 0 ? "#fff" : "#f9f9f9",
+                    backgroundColor:
+                      displayIndex % 2 === 0 ? "#fff" : "#f9f9f9",
                     zIndex: 2,
                     boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
                   }}
@@ -2663,7 +2738,7 @@ const InputNilai = () => {
                         position: isFrozen ? "sticky" : "static",
                         left: isFrozen ? leftPos : "auto",
                         backgroundColor: isFrozen
-                          ? rowIndex % 2 === 0
+                          ? displayIndex % 2 === 0
                             ? "#fff"
                             : "#f9f9f9"
                           : "transparent",
@@ -11412,7 +11487,8 @@ const RekapNilai = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedKelas, setSelectedKelas] = useState<string>("ALL");
-  const [selectedSemester, setSelectedSemester] = useState<string>("1"); // ✅ TAMBAH STATE INI
+  const [selectedSemester, setSelectedSemester] = useState<string>("1");
+  const [sortByRanking, setSortByRanking] = useState<boolean>(false);
   const [availableKelas, setAvailableKelas] = useState<string[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingSampulId, setDownloadingSampulId] = useState<string | null>(
@@ -13410,10 +13486,25 @@ const RekapNilai = () => {
   const displayHeaders = headers.map((header) => data[0][header] || "");
   const actualData = data.slice(1);
 
-  const filteredData =
+  const filteredDataByKelas =
     selectedKelas === "ALL"
       ? actualData
       : actualData.filter((row) => row.Data2 === selectedKelas);
+
+  // ✅ Urutkan berdasarkan Ranking (Data17) jika toggle aktif.
+  // Siswa tanpa ranking valid akan diletakkan di bawah.
+  const filteredData = sortByRanking
+    ? [...filteredDataByKelas].sort((a, b) => {
+        const rankA = parseFloat(a.Data17);
+        const rankB = parseFloat(b.Data17);
+        const validA = !isNaN(rankA);
+        const validB = !isNaN(rankB);
+        if (!validA && !validB) return 0;
+        if (!validA) return 1;
+        if (!validB) return -1;
+        return rankA - rankB;
+      })
+    : filteredDataByKelas;
 
   return (
     <div style={{ padding: "10px", margin: "0 auto", maxWidth: "100vw" }}>
@@ -13465,6 +13556,7 @@ const RekapNilai = () => {
             minWidth: "200px",
             cursor: "pointer",
             backgroundColor: "white",
+            marginRight: "10px",
           }}
         >
           <option value="ALL">Semua Kelas</option>
@@ -13474,6 +13566,22 @@ const RekapNilai = () => {
             </option>
           ))}
         </select>
+
+        <button
+          onClick={() => setSortByRanking((prev) => !prev)}
+          style={{
+            padding: "10px 18px",
+            fontSize: "14px",
+            borderRadius: "4px",
+            border: "1px solid #ddd",
+            cursor: "pointer",
+            backgroundColor: sortByRanking ? "#4CAF50" : "white",
+            color: sortByRanking ? "white" : "#333",
+            fontWeight: "bold",
+          }}
+        >
+          {sortByRanking ? "✅ Urut Ranking Aktif" : "🏆 Urutkan Ranking"}
+        </button>
       </div>
 
       <div
