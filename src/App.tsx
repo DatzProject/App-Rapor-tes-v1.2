@@ -58,7 +58,7 @@ interface KehadiranData {
 }
 
 const endpoint =
-  "https://script.google.com/macros/s/AKfycbyz8wReZj9L0LotnGHovdRjg_DGsr3dawYJtp4IgBIrpoplcr0q2H4vnVPtgsZUVUF7/exec";
+  "https://script.google.com/macros/s/AKfycbxLPKjB8FkxOyG6R8xa4vpCSiaa8R2sTowjYnm1mkjHIBB8WewoWnSpRj-P7b2a8Uuk/exec";
 
 const throttle = (func: Function, delay: number) => {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -11602,296 +11602,27 @@ const RekapNilai = () => {
     return "Terus semangat belajar ananda!";
   };
 
-  const downloadRekapExcel = () => {
+  const downloadRekapExcel = async () => {
     if (filteredData.length === 0) return;
     setIsDownloadingExcel(true);
 
     try {
-      const workbook = XLSX.utils.book_new();
+      const sheetName =
+        selectedSemester === "1" ? "RekapNilai1" : "RekapNilai2";
 
-      // Kelompokkan per kelas
-      const groupedByKelas: { [kelas: string]: any[] } = {};
-      filteredData.forEach((row) => {
-        const kelas = row.Data2 || "Tanpa Kelas";
-        if (!groupedByKelas[kelas]) groupedByKelas[kelas] = [];
-        groupedByKelas[kelas].push(row);
-      });
-
-      const allRekapHeaders = [
-        "Data1",
-        "Data6",
-        "Data7",
-        "Data8",
-        "Data9",
-        "Data10",
-        "Data11",
-        "Data12",
-        "Data13",
-        "Data14",
-      ];
-
-      const rekapHeaders = allRekapHeaders.filter((h) => {
-        if (h === "Data1") return true;
-        const dispH = (data[0]?.[h] || "").trim();
-        return (
-          dispH !== "" &&
-          dispH !== h &&
-          !dispH.includes("#REF!") &&
-          !dispH.includes("#N/A") &&
-          !dispH.toUpperCase().includes("N/A")
-        );
-      });
-      const excludeKeys = ["Data17"];
-      const nilaiHeaders = rekapHeaders
-        .slice(1)
-        .filter((h) => !excludeKeys.includes(h));
-      const mapelOnlyHeaders = nilaiHeaders.filter(
-        (h) => !["Data15", "Data16"].includes(h)
+      const response = await fetch(
+        `${endpoint}?action=generateRekapExcel&sheet=${sheetName}&semester=${selectedSemester}`
       );
+      const result = await response.json();
 
-      const getVals = (rows: any[], h: string) =>
-        rows.map((row) => parseFloat(row[h])).filter((v) => !isNaN(v));
-
-      Object.entries(groupedByKelas).forEach(([kelas, rows]) => {
-        // ─── Header baris 1: label kolom ───
-        const headerRow = [
-          "No",
-          data[0]?.["Data1"] || "NAMA SISWA",
-          ...nilaiHeaders.map((h) => data[0]?.[h] || h),
-        ];
-
-        // ─── Data siswa ───
-        const dataRows = rows.map((row, idx) => [
-          idx + 1,
-          ...rekapHeaders.map((h) =>
-            row[h] !== undefined && row[h] !== null ? row[h] : ""
-          ),
-        ]);
-
-        // ─── Baris summary ───
-        const buildSummaryRow = (
-          label: string,
-          mapelFn: (h: string) => string | number,
-          data15Val: string | number,
-          data16Val: string | number
-        ) => {
-          return [
-            "",
-            label,
-            ...nilaiHeaders.map((h) => {
-              if (h === "Data15") return data15Val;
-              if (h === "Data16") return data16Val;
-              return mapelFn(h);
-            }),
-          ];
-        };
-
-        // Jumlah
-        const jumlahRow = buildSummaryRow(
-          "Jumlah",
-          (h) => {
-            const v = getVals(rows, h);
-            return v.length > 0 ? v.reduce((a, b) => a + b, 0) : "";
-          },
-          (() => {
-            const v = rows
-              .map((row) => {
-                const vals = mapelOnlyHeaders
-                  .map((mh) => parseFloat(row[mh]))
-                  .filter((v) => !isNaN(v));
-                return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) : null;
-              })
-              .filter((v) => v !== null) as number[];
-            return v.length > 0 ? v.reduce((a, b) => a + b, 0) : "";
-          })(),
-          (() => {
-            const totalJumlah = rows
-              .map((row) => {
-                const v = mapelOnlyHeaders
-                  .map((mh) => parseFloat(row[mh]))
-                  .filter((v) => !isNaN(v));
-                return v.length > 0 ? v.reduce((a, b) => a + b, 0) : null;
-              })
-              .filter((v) => v !== null) as number[];
-            const grand = totalJumlah.reduce((a, b) => a + b, 0);
-            return mapelOnlyHeaders.length > 0
-              ? parseFloat((grand / mapelOnlyHeaders.length).toFixed(2))
-              : "";
-          })()
-        );
-
-        // Rata-rata Kelas
-        const rataRataRow = buildSummaryRow(
-          "Rata-rata Kelas",
-          (h) => {
-            const v = getVals(rows, h);
-            return v.length > 0
-              ? parseFloat((v.reduce((a, b) => a + b, 0) / v.length).toFixed(2))
-              : "";
-          },
-          (() => {
-            const total = mapelOnlyHeaders.reduce((sum, mh) => {
-              const v = getVals(rows, mh);
-              return (
-                sum +
-                (v.length > 0 ? v.reduce((a, b) => a + b, 0) / v.length : 0)
-              );
-            }, 0);
-            return mapelOnlyHeaders.length > 0
-              ? parseFloat(total.toFixed(2))
-              : "";
-          })(),
-          (() => {
-            const total = mapelOnlyHeaders.reduce((sum, mh) => {
-              const v = getVals(rows, mh);
-              return (
-                sum +
-                (v.length > 0 ? v.reduce((a, b) => a + b, 0) / v.length : 0)
-              );
-            }, 0);
-            return mapelOnlyHeaders.length > 0
-              ? parseFloat((total / mapelOnlyHeaders.length).toFixed(2))
-              : "";
-          })()
-        );
-
-        // Daya Serap
-        const dayaSerapRow = buildSummaryRow(
-          "Daya Serap",
-          (h) => {
-            const v = getVals(rows, h);
-            return v.length > 0
-              ? `${Math.round(v.reduce((a, b) => a + b, 0) / v.length)}%`
-              : "";
-          },
-          (() => {
-            const total = mapelOnlyHeaders.reduce((sum, mh) => {
-              const v = getVals(rows, mh);
-              return (
-                sum +
-                (v.length > 0 ? v.reduce((a, b) => a + b, 0) / v.length : 0)
-              );
-            }, 0);
-            return mapelOnlyHeaders.length > 0 ? `${Math.round(total)}%` : "";
-          })(),
-          (() => {
-            const total = mapelOnlyHeaders.reduce((sum, mh) => {
-              const v = getVals(rows, mh);
-              return (
-                sum +
-                (v.length > 0 ? v.reduce((a, b) => a + b, 0) / v.length : 0)
-              );
-            }, 0);
-            return mapelOnlyHeaders.length > 0
-              ? `${Math.round(total / mapelOnlyHeaders.length)}%`
-              : "";
-          })()
-        );
-
-        // Nilai Terbesar
-        const nilaiTerbesarRow = buildSummaryRow(
-          "Nilai Terbesar",
-          (h) => {
-            const v = getVals(rows, h);
-            return v.length > 0 ? Math.max(...v) : "";
-          },
-          (() => {
-            const perSiswa = rows
-              .map((row) => {
-                const v = mapelOnlyHeaders
-                  .map((mh) => parseFloat(row[mh]))
-                  .filter((v) => !isNaN(v));
-                return v.length > 0 ? v.reduce((a, b) => a + b, 0) : null;
-              })
-              .filter((v) => v !== null) as number[];
-            return perSiswa.length > 0 ? Math.max(...perSiswa) : "";
-          })(),
-          (() => {
-            const perSiswa = rows
-              .map((row) => {
-                const v = mapelOnlyHeaders
-                  .map((mh) => parseFloat(row[mh]))
-                  .filter((v) => !isNaN(v));
-                return v.length > 0
-                  ? v.reduce((a, b) => a + b, 0) / v.length
-                  : null;
-              })
-              .filter((v) => v !== null) as number[];
-            return perSiswa.length > 0
-              ? parseFloat(Math.max(...perSiswa).toFixed(2))
-              : "";
-          })()
-        );
-
-        // Nilai Terkecil
-        const nilaiTerkecilRow = buildSummaryRow(
-          "Nilai Terkecil",
-          (h) => {
-            const v = getVals(rows, h);
-            return v.length > 0 ? Math.min(...v) : "";
-          },
-          (() => {
-            const total = mapelOnlyHeaders.reduce((sum, mh) => {
-              const v = getVals(rows, mh);
-              return sum + (v.length > 0 ? Math.min(...v) : 0);
-            }, 0);
-            return mapelOnlyHeaders.length > 0 ? total : "";
-          })(),
-          (() => {
-            const perSiswa = rows
-              .map((row) => {
-                const v = mapelOnlyHeaders
-                  .map((mh) => parseFloat(row[mh]))
-                  .filter((v) => !isNaN(v));
-                return v.length > 0
-                  ? v.reduce((a, b) => a + b, 0) / v.length
-                  : null;
-              })
-              .filter((v) => v !== null) as number[];
-            return perSiswa.length > 0
-              ? parseFloat(Math.min(...perSiswa).toFixed(2))
-              : "";
-          })()
-        );
-
-        // Gabungkan semua baris (tanpa summary)
-        const allRows = [headerRow, ...dataRows];
-
-        // Buat worksheet
-        const ws = XLSX.utils.aoa_to_sheet(allRows);
-
-        // Style lebar kolom
-        ws["!cols"] = [
-          { wch: 5 }, // No
-          { wch: 25 }, // Nama
-          ...nilaiHeaders.map(() => ({ wch: 12 })),
-        ];
-
-        // Nama sheet (maks 31 karakter, karakter invalid diganti)
-        const sheetName = `Kelas ${kelas}`
-          .substring(0, 31)
-          .replace(/[\\/*?:\[\]]/g, "_");
-        XLSX.utils.book_append_sheet(workbook, ws, sheetName);
-      });
-
-      // Simpan file
-      const fileName =
-        selectedKelas === "ALL"
-          ? `Rekap_Nilai_Semua_Kelas_Sem${selectedSemester}.xlsx`
-          : `Rekap_Nilai_Kelas${selectedKelas}_Sem${selectedSemester}.xlsx`;
-
-      const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
-      const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${wbout}`;
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      if (result.success) {
+        window.open(result.url, "_blank");
+      } else {
+        alert("❌ Gagal generate Excel: " + result.error);
+      }
     } catch (err) {
       alert(
-        "❌ Gagal membuat Excel: " +
-          (err instanceof Error ? err.message : "Unknown error")
+        "❌ Error: " + (err instanceof Error ? err.message : "Unknown error")
       );
     } finally {
       setIsDownloadingExcel(false);
