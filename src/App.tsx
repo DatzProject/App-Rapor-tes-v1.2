@@ -11880,16 +11880,14 @@ const RekapNilai = () => {
           ? `Rekap_Nilai_Semua_Kelas_Sem${selectedSemester}.xlsx`
           : `Rekap_Nilai_Kelas${selectedKelas}_Sem${selectedSemester}.xlsx`;
 
-      const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([wbout], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = URL.createObjectURL(blob);
+      const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "base64" });
+      const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${wbout}`;
       const a = document.createElement("a");
-      a.href = url;
+      a.href = dataUrl;
       a.download = fileName;
+      document.body.appendChild(a);
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      document.body.removeChild(a);
     } catch (err) {
       alert(
         "❌ Gagal membuat Excel: " +
